@@ -1,0 +1,30 @@
+{
+	"name": "analytics-client-js",
+	"version": "0.1.0",
+	"artifacts":[
+		{
+			"files": [
+				{"src/analytics-client.js":"analytics-client.js"}
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"name": "utils-ajax",
+			"version": "0.1.0"
+		},
+		{
+			"name": "session-js",
+			"version": "0.1.0"
+		},
+		{
+			"name": "kinesis-js",
+			"version": "0.1.0"
+		},
+		{
+			"name": "jasmine",
+			"version": "2.0.0",
+			"scope": "test"
+		}
+	]
+}
