@@ -3,6 +3,8 @@ var AnalyticsClient = function(options) {
 	this.config = {
 		kinesis: null,
 		endpoint: "http://localhost:8999/analytics",
+		common: {},
+		data: {},
 		onReady: function() {},
 		onSuccess: function() {},
 		onError: function() {}
@@ -26,25 +28,24 @@ var AnalyticsClient = function(options) {
 			self.sessionId = generateUUID();
 			sessionStorage.sessionId = self.sessionId;
 		}
+		self.config.common.userId = self.userId;
+		self.config.common.sessionId = self.sessionId;
 		var session = new SessionProvider({
 			location_cookie: null,
 			session_cookie: null,
 			gapi_location: false
 		}).getSession();
-		var data = {
-			device: session.device,
-			locale: session.locale
-		};
+		var data = self.config.data;
+		data.device = session.device;
+		data.locale = session.locale;
 		data.device.browser = session.browser;
-		self.updateSession({
-			data: data,
+		self.updateSession(data, {
 			onSuccess: self.config.onReady
 		});
 	}
 
-	this.updateSession = function(options) {
+	this.updateSession = function(data, options) {
 		var request = {
-			data: {},
 			onSuccess: function() {},
 			onError: function() {}
 		}
@@ -54,9 +55,14 @@ var AnalyticsClient = function(options) {
 				request[option] = options[option]
 			}
 		}
+		request.data = this.config.common;
+		if(data!=null){
+			request.data = data;
+			for(item in this.config.common){
+				request.data[item] = this.config.common[item];
+			}
+		}
 		var title = document.title;
-		request.data.user_id = this.userId;
-		request.data.session_id = this.sessionId;
 		request.data.page_title = title;
 		if (this.config.kinesis != null) {
 			this.config.kinesis.put(JSON.stringify(request.data), {onSuccess: request.onSuccess, onError: request.onError});
