@@ -30,6 +30,7 @@ var AnalyticsClient = function(options) {
 		}
 		self.config.common.userId = self.userId;
 		self.config.common.sessionId = self.sessionId;
+		self.config.common.domain = window.location.hostname;
 		var session = new SessionProvider({
 			location_cookie: null,
 			session_cookie: null,
