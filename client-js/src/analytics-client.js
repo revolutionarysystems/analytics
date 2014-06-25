@@ -18,55 +18,129 @@ var AnalyticsClient = function(options) {
 	}
 
 	function init(self) {
-		self.userId = localStorage.userId;
-		if (self.userId == undefined) {
-			self.userId = generateUUID();
-			localStorage.userId = self.userId;
-		}
-		self.sessionId = sessionStorage.sessionId;
-		if (self.sessionId == undefined) {
-			self.sessionId = generateUUID();
-			sessionStorage.sessionId = self.sessionId;
-		}
-		self.config.common.userId = self.userId;
-		self.config.common.sessionId = self.sessionId;
-		self.config.common.domain = window.location.hostname;
-		var session = new SessionProvider({
-			location_cookie: null,
-			session_cookie: null,
-			gapi_location: false
-		}).getSession();
+		self.userId = getUserId();
+		self.sessionId = getSessionId();
+		var common = self.config.common;
+		common.userId = self.userId;
+		common.sessionId = self.sessionId;
+		common.domain = window.location.hostname;
 		var data = self.config.data;
-		data.device = session.device;
-		data.locale = session.locale;
-		data.device.browser = session.browser;
+		data.device = getDeviceInfo();
+		data.browser = getBrowserInfo();
+		data.page = getPageInfo();
+		data.connection = getConnectionInfo();
+		data.locale = getLocaleInfo();
 		self.updateSession(data, {
 			onSuccess: self.config.onReady
 		});
 	}
 
+	function getUserId() {
+		var userId = localStorage.userId;
+		if (userId == undefined) {
+			userId = generateUUID();
+			localStorage.userId = userId;
+		}
+		return userId;
+	}
+
+	function getSessionId() {
+		var sessionId = sessionStorage.sessionId;
+		if (sessionId == undefined) {
+			sessionId = generateUUID();
+			sessionStorage.sessionId = sessionId;
+		}
+		return sessionId;
+	}
+
+	function getDeviceInfo() {
+		var device = {
+			platform: window.navigator.platform,
+			screen: window.screen,
+			pixelRatio: window.devicePixelRatio
+		};
+		return device;
+	}
+
+	function getBrowserInfo() {
+		var browser = {
+			vendor: window.navigator.vendor,
+			vendorSub: window.navigator.vendorSub,
+			product: window.navigator.product,
+			productSub: window.navigator.productSub,
+			userAgent: window.navigator.userAgent,
+			mimeTypes: window.navigator.mimeTypes.length,
+			plugins: window.navigator.plugins.length,
+			language: window.navigator.language
+		}
+		return browser;
+	}
+
+	function getPageInfo() {
+		var page = {
+			location: window.location,
+			performance: performance.timing,
+			title: document.title
+		}
+		return page;
+	}
+
+	function getLocaleInfo() {
+		var lang = ((
+			navigator.language ||
+			navigator.browserLanguage ||
+			navigator.systemLanguage ||
+			navigator.userLanguage
+		) || '').split("-");
+		if (lang.length == 2) {
+			return {
+				country: lang[1].toLowerCase(),
+				lang: lang[0].toLowerCase()
+			};
+		} else if (lang) {
+			return {
+				lang: lang[0].toLowerCase(),
+				country: null
+			};
+		} else {
+			return {
+				lang: null,
+				country: null
+			};
+		}
+	}
+
+	function getConnectionInfo() {
+		var navConnection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {
+			bandwidth: "not supported",
+			metered: "not supported"
+		};
+		return navConnection;
+	}
+
 	this.updateSession = function(data, options) {
 		var request = {
-			onSuccess: function() {},
-			onError: function() {}
-		}
-		// Merge options with config
+				onSuccess: function() {},
+				onError: function() {}
+			}
+			// Merge options with config
 		if (options != null) {
 			for (option in options) {
 				request[option] = options[option]
 			}
 		}
 		request.data = this.config.common;
-		if(data!=null){
+		if (data != null) {
 			request.data = data;
-			for(item in this.config.common){
+			for (item in this.config.common) {
 				request.data[item] = this.config.common[item];
 			}
 		}
-		var title = document.title;
-		request.data.page_title = title;
 		if (this.config.kinesis != null) {
-			this.config.kinesis.put(JSON.stringify(request.data), {onSuccess: request.onSuccess, onError: request.onError});
+			this.config.kinesis.put(JSON.stringify(request.data), {
+				onSuccess: request.onSuccess,
+				onError: request.onError
+			});
 		} else {
 			Ajax.post(this.config.endpoint + "/updateSession", "data=" + JSON.stringify(request.data), {
 				onSuccess: request.onSuccess,
@@ -85,6 +159,11 @@ var AnalyticsClient = function(options) {
 		return uuid;
 	};
 
-	init(this);
+	var $this = this;
+	window.addEventListener("load", function() {
+		setTimeout(function() {
+			init($this);
+		}, 0);
+	}, false);
 
 }
