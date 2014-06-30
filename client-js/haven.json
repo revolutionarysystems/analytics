@@ -1,6 +1,6 @@
 {
 	"name": "analytics-client-js",
-	"version": "0.1.0",
+	"version": "0.1.0-SNAPSHOT",
 	"artifacts":[
 		{
 			"files": [
@@ -11,11 +11,11 @@
 	"dependencies": [
 		{
 			"name": "utils-ajax",
-			"version": "0.1.0"
+			"version": "0.1.0-SNAPSHOT"
 		},
 		{
 			"name": "kinesis-js",
-			"version": "0.1.0"
+			"version": "0.1.0-SNAPSHOT"
 		},
 		{
 			"name": "jasmine",

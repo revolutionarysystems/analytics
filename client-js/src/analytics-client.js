@@ -137,12 +137,19 @@ var AnalyticsClient = function(options) {
 			}
 		}
 		if (this.config.kinesis != null) {
+			if(request.data.key !== null){
+				request.data.partitionKey = request.data.key;
+			}
 			this.config.kinesis.put(JSON.stringify(request.data), {
 				onSuccess: request.onSuccess,
 				onError: request.onError
 			});
 		} else {
-			Ajax.post(this.config.endpoint + "/updateSession", "data=" + JSON.stringify(request.data), {
+			var params = "data=" + JSON.stringify(request.data);
+			if(request.data.key !== null){
+				params = params + "&key=" + request.data.key;
+			}
+			Ajax.post(this.config.endpoint + "/updateSession", params, {
 				onSuccess: request.onSuccess,
 				onError: request.onError
 			});
