@@ -12,7 +12,7 @@ var AnalyticsClient = function(options) {
 
 	// Merge options with config
 	if (options != null) {
-		for (option in options) {
+		for (var option in options) {
 			this.config[option] = options[option]
 		}
 	}
@@ -56,7 +56,7 @@ var AnalyticsClient = function(options) {
 	function getDeviceInfo() {
 		var device = {
 			platform: window.navigator.platform,
-			screen: window.screen,
+			screen: flatten(window.screen),
 			pixelRatio: window.devicePixelRatio
 		};
 		return device;
@@ -115,7 +115,16 @@ var AnalyticsClient = function(options) {
 			bandwidth: "not supported",
 			metered: "not supported"
 		};
-		return navConnection;
+		return flatten(navConnection);
+	}
+
+	function flatten(obj) {
+	    var result = {};
+	    for(var key in obj) {
+	    	value = obj[key];
+	        result[key] = value;
+	    }
+	    return result;
 	}
 
 	this.updateSession = function(data, options) {
@@ -125,22 +134,20 @@ var AnalyticsClient = function(options) {
 			}
 			// Merge options with config
 		if (options != null) {
-			for (option in options) {
+			for (var option in options) {
 				request[option] = options[option]
 			}
 		}
 		request.data = this.config.common;
 		if (data != null) {
 			request.data = data;
-			for (item in this.config.common) {
+			for (var item in this.config.common) {
 				request.data[item] = this.config.common[item];
 			}
 		}
 		if (this.config.kinesis != null) {
-			if(request.data.key !== null){
-				request.data.partitionKey = request.data.key;
-			}
 			this.config.kinesis.put(JSON.stringify(request.data), {
+				partitionKey: request.data.key,
 				onSuccess: request.onSuccess,
 				onError: request.onError
 			});
