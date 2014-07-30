@@ -11,11 +11,7 @@ var AnalyticsClient = function(options) {
 	}
 
 	// Merge options with config
-	if (options != null) {
-		for (var option in options) {
-			this.config[option] = options[option]
-		}
-	}
+	this.config = merge(this.config, options);
 
 	function init(self) {
 		self.userId = getUserId();
@@ -25,14 +21,19 @@ var AnalyticsClient = function(options) {
 		common.sessionId = self.sessionId;
 		common.domain = window.location.hostname;
 		var data = self.config.data;
+		self.updateSession(data, {
+			onSuccess: self.config.onReady
+		});
+	}
+
+	function getAllInfo() {
+		var data = {};
 		data.device = getDeviceInfo();
 		data.browser = getBrowserInfo();
 		data.page = getPageInfo();
 		data.connection = getConnectionInfo();
 		data.locale = getLocaleInfo();
-		self.updateSession(data, {
-			onSuccess: self.config.onReady
-		});
+		return data;
 	}
 
 	function getUserId() {
@@ -119,32 +120,33 @@ var AnalyticsClient = function(options) {
 	}
 
 	function flatten(obj) {
-	    var result = {};
-	    for(var key in obj) {
-	    	value = obj[key];
-	        result[key] = value;
-	    }
-	    return result;
+		var result = {};
+		for (var key in obj) {
+			value = obj[key];
+			result[key] = value;
+		}
+		return result;
+	}
+
+	function merge(obj1, obj2) {
+		if (obj2 != null) {
+			for (var key in obj2) {
+				obj1[key] = obj2[key];
+			}
+		}
+		return obj1;
 	}
 
 	this.updateSession = function(data, options) {
 		var request = {
-				onSuccess: function() {},
-				onError: function() {}
-			}
-			// Merge options with config
-		if (options != null) {
-			for (var option in options) {
-				request[option] = options[option]
-			}
+			onSuccess: function() {},
+			onError: function() {}
 		}
+		// Merge options with request
+		request = merge(request, options);
 		request.data = this.config.common;
-		if (data != null) {
-			request.data = data;
-			for (var item in this.config.common) {
-				request.data[item] = this.config.common[item];
-			}
-		}
+		request.data = merge(request.data, getAllInfo());
+		request.data = merge(request.data, data);
 		if (this.config.kinesis != null) {
 			this.config.kinesis.put(JSON.stringify(request.data), {
 				partitionKey: request.data.key,
@@ -153,7 +155,7 @@ var AnalyticsClient = function(options) {
 			});
 		} else {
 			var params = "data=" + JSON.stringify(request.data);
-			if(request.data.key !== null){
+			if (request.data.key !== null) {
 				params = params + "&key=" + request.data.key;
 			}
 			Ajax.post(this.config.endpoint + "/updateSession", params, {
