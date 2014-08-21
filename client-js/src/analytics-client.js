@@ -24,6 +24,7 @@ var AnalyticsClient = function(options) {
 		self.updateSession(data, {
 			onSuccess: self.config.onReady
 		});
+		window.addEventListener("hashchange", function(){self.updateSession();});
 	}
 
 	function getAllInfo() {

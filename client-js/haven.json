@@ -8,6 +8,13 @@
 			]
 		}
 	],
+	"repositories": {
+		"distribution": [
+			{
+				"url": "http://build.revsys.co.uk/haven-repository"
+			}
+		]
+	},
 	"dependencies": [
 		{
 			"name": "utils-ajax",
