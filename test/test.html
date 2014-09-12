@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+  <title>Test</title>
+  <script type="text/javascript" src="../dist/analytics-client.js"></script>
+</head>
+<body>
+  
+<script type="text/javascript">
+
+	var analytics = new AnalyticsClient({kinesis: new Kinesis({partitionKey: "1", streamName: "analytics", credentials: {accessKey: "AKIAIOCBBQUXJS2KELYA", secretKey: "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"}})});
+
+</script>
+
+</body>
+</html>

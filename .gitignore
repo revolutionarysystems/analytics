@@ -1,3 +1,6 @@
 /client-js/sublime
 /service/target
 /client-js/haven_artifacts
+/haven_artifacts
+/node_modules
+/sublime
