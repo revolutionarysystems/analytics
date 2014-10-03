@@ -1,9 +1,13 @@
-var AnalyticsClient = function(options) {
+var RevsysAnalyticsClient = function(options) {
+
+	this.id = "analytics-client_" + generateUUID();
+	window[this.id] = this;
 
 	this.config = {
 		kinesis: null,
 		endpoint: "http://localhost:8999/analytics",
-		common: {},
+		fetchLocation: true,
+		staticData: {},
 		data: {},
 		onReady: function() {},
 		onSuccess: function() {},
@@ -16,15 +20,49 @@ var AnalyticsClient = function(options) {
 	function init(self) {
 		self.userId = getUserId();
 		self.sessionId = getSessionId();
-		var common = self.config.common;
-		common.userId = self.userId;
-		common.sessionId = self.sessionId;
-		common.domain = window.location.hostname;
-		var data = self.config.data;
-		self.updateSession(data, {
-			onSuccess: self.config.onReady
+		var staticData = self.config.staticData;
+		staticData.userId = self.userId;
+		staticData.sessionId = self.sessionId;
+		staticData.domain = window.location.hostname;
+		if (self.config.fetchLocation) {
+			getLocationInfo();
+		} else {
+			var data = self.config.data;
+			self.updateSession(data, {
+				onSuccess: self.config.onReady
+			});
+		}
+		window.addEventListener("hashchange", function() {
+			self.updateSession();
 		});
-		window.addEventListener("hashchange", function(){self.updateSession();});
+	}
+
+	this.updateSession = function(data, options) {
+		var request = {
+				onSuccess: function() {},
+				onError: function() {}
+			}
+			// Merge options with request
+		request = merge(request, options);
+		request.data = this.config.staticData;
+		request.data = merge(request.data, getAllInfo());
+		request.data = merge(request.data, data);
+		if (this.config.kinesis != null) {
+			this.config.kinesis.put(JSON.stringify(request.data), {
+				partitionKey: request.data.key,
+				onSuccess: request.onSuccess,
+				onError: request.onError
+			});
+		} else {
+			var params = "data=" + JSON.stringify(request.data);
+			if (request.data.key !== null) {
+				params = params + "&key=" + request.data.key;
+			}
+			Ajax.post(this.config.endpoint + "/updateSession", params, {
+				onSuccess: request.onSuccess,
+				onError: request.onError
+			});
+		}
 	}
 
 	function getAllInfo() {
@@ -112,6 +150,28 @@ var AnalyticsClient = function(options) {
 		}
 	}
 
+	function getLocationInfo() {
+		var el = document.createElement('script');
+		el.async = true;
+		document.getElementsByTagName('script')[0].appendChild(el);
+		setTimeout(function() { // set source after insertion - needed for older versions of IE
+			el.src = "https://ajaxhttpheaders1.appspot.com/?callback=window['" + $this.id + "'].processLocationInfo";
+		}, 0);
+	}
+
+	this.processLocationInfo = function(data) {
+		this.config.staticData.location = {
+			language: data['Accept-Language'],
+			city: data['X-Appengine-City'],
+			country: data['X-Appengine-Country'],
+			region: data['X-Appengine-Region'],
+			coords: data['X-Appengine-Citylatlong']
+		}
+		this.updateSession(this.config.data, {
+			onSuccess: this.config.onReady
+		});
+	}
+
 	function getConnectionInfo() {
 		var navConnection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {
 			bandwidth: "not supported",
@@ -136,34 +196,6 @@ var AnalyticsClient = function(options) {
 			}
 		}
 		return obj1;
-	}
-
-	this.updateSession = function(data, options) {
-		var request = {
-			onSuccess: function() {},
-			onError: function() {}
-		}
-		// Merge options with request
-		request = merge(request, options);
-		request.data = this.config.common;
-		request.data = merge(request.data, getAllInfo());
-		request.data = merge(request.data, data);
-		if (this.config.kinesis != null) {
-			this.config.kinesis.put(JSON.stringify(request.data), {
-				partitionKey: request.data.key,
-				onSuccess: request.onSuccess,
-				onError: request.onError
-			});
-		} else {
-			var params = "data=" + JSON.stringify(request.data);
-			if (request.data.key !== null) {
-				params = params + "&key=" + request.data.key;
-			}
-			Ajax.post(this.config.endpoint + "/updateSession", params, {
-				onSuccess: request.onSuccess,
-				onError: request.onError
-			});
-		}
 	}
 
 	function generateUUID() {
