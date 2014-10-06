@@ -9,6 +9,8 @@ var RevsysAnalyticsClient = function(options) {
 		fetchLocation: true,
 		staticData: {},
 		data: {},
+		window: window,
+		document: document,
 		onReady: function() {},
 		onSuccess: function() {},
 		onError: function() {}
@@ -23,7 +25,7 @@ var RevsysAnalyticsClient = function(options) {
 		var staticData = self.config.staticData;
 		staticData.userId = self.userId;
 		staticData.sessionId = self.sessionId;
-		staticData.domain = window.location.hostname;
+		staticData.domain = self.config.window.location.hostname;
 		if (self.config.fetchLocation) {
 			getLocationInfo();
 		} else {
@@ -95,42 +97,42 @@ var RevsysAnalyticsClient = function(options) {
 
 	function getDeviceInfo() {
 		var device = {
-			platform: window.navigator.platform,
-			screen: flatten(window.screen),
-			pixelRatio: window.devicePixelRatio
+			platform: $this.config.window.navigator.platform,
+			screen: flatten($this.config.window.screen),
+			pixelRatio: $this.config.window.devicePixelRatio
 		};
 		return device;
 	}
 
 	function getBrowserInfo() {
 		var browser = {
-			vendor: window.navigator.vendor,
-			vendorSub: window.navigator.vendorSub,
-			product: window.navigator.product,
-			productSub: window.navigator.productSub,
-			userAgent: window.navigator.userAgent,
-			mimeTypes: window.navigator.mimeTypes.length,
-			plugins: window.navigator.plugins.length,
-			language: window.navigator.language
+			vendor: $this.config.window.navigator.vendor,
+			vendorSub: $this.config.window.navigator.vendorSub,
+			product: $this.config.window.navigator.product,
+			productSub: $this.config.window.navigator.productSub,
+			userAgent: $this.config.window.navigator.userAgent,
+			mimeTypes: $this.config.window.navigator.mimeTypes.length,
+			plugins: $this.config.window.navigator.plugins.length,
+			language: $this.config.window.navigator.language
 		}
 		return browser;
 	}
 
 	function getPageInfo() {
 		var page = {
-			location: window.location,
+			location: $this.config.window.location,
 			performance: performance.timing,
-			title: document.title
+			title: $this.config.document.title
 		}
 		return page;
 	}
 
 	function getLocaleInfo() {
 		var lang = ((
-			navigator.language ||
-			navigator.browserLanguage ||
-			navigator.systemLanguage ||
-			navigator.userLanguage
+			$this.config.window.navigator.language ||
+			$this.config.window.navigator.browserLanguage ||
+			$this.config.window.navigator.systemLanguage ||
+			$this.config.window.navigator.userLanguage
 		) || '').split("-");
 		if (lang.length == 2) {
 			return {
@@ -173,7 +175,7 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 	function getConnectionInfo() {
-		var navConnection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {
+		var navConnection = $this.config.window.navigator.connection || $this.config.window.navigator.mozConnection || $this.config.window.navigator.webkitConnection || {
 			bandwidth: "not supported",
 			metered: "not supported"
 		};
