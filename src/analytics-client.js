@@ -43,12 +43,14 @@ var RevsysAnalyticsClient = function(options) {
 		var request = {
 				onSuccess: function() {},
 				onError: function() {}
-			}
-			// Merge options with request
+		}
+		var requestId = generateUUID();
+		// Merge options with request
 		request = merge(request, options);
 		request.data = this.config.staticData;
 		request.data = merge(request.data, getAllInfo());
 		request.data = merge(request.data, data);
+		request.data.requestId = requestId;
 		if (this.config.kinesis != null) {
 			this.config.kinesis.put(JSON.stringify(request.data), {
 				partitionKey: request.data.key,
@@ -65,6 +67,7 @@ var RevsysAnalyticsClient = function(options) {
 				onError: request.onError
 			});
 		}
+		return requestId;
 	}
 
 	function getAllInfo() {
