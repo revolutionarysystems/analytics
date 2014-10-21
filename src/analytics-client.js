@@ -10,7 +10,6 @@ var RevsysAnalyticsClient = function(options) {
 		staticData: {},
 		data: {},
 		window: window,
-		document: document,
 		onReady: function() {},
 		onSuccess: function() {},
 		onError: function() {}
@@ -34,15 +33,15 @@ var RevsysAnalyticsClient = function(options) {
 				onSuccess: self.config.onReady
 			});
 		}
-		window.addEventListener("hashchange", function() {
+		self.config.window.addEventListener("hashchange", function() {
 			self.updateSession();
 		});
 	}
 
 	this.updateSession = function(data, options) {
 		var request = {
-				onSuccess: function() {},
-				onError: function() {}
+			onSuccess: function() {},
+			onError: function() {}
 		}
 		var requestId = generateUUID();
 		// Merge options with request
@@ -77,6 +76,8 @@ var RevsysAnalyticsClient = function(options) {
 		data.page = getPageInfo();
 		data.connection = getConnectionInfo();
 		data.locale = getLocaleInfo();
+		data.scripts = getScripts();
+		data.frames = getFrames();
 		return data;
 	}
 
@@ -125,7 +126,7 @@ var RevsysAnalyticsClient = function(options) {
 		var page = {
 			location: $this.config.window.location,
 			performance: performance.timing,
-			title: $this.config.document.title
+			title: $this.config.window.document.title
 		}
 		return page;
 	}
@@ -153,6 +154,37 @@ var RevsysAnalyticsClient = function(options) {
 				country: null
 			};
 		}
+	}
+
+	function getScripts() {
+		var result = [];
+		var scripts = $this.config.window.document.scripts;
+		for (var i in scripts) {
+			var script = scripts[i];
+			if (script.src) {
+				result.push({
+					type: script.type,
+					src: script.src,
+					async: script.async,
+					defer: script.defer
+				});
+			}
+		}
+		return result;
+	}
+
+	function getFrames(){
+		var result = [];
+		var frames = $this.config.window.document.getElementsByTagName("iframe");
+		for(var i in frames){
+			var frame = frames[i];
+			if(frame.src){
+				result.push({
+					src: frame.src
+				});
+			}
+		}
+		return result;
 	}
 
 	function getLocationInfo() {
