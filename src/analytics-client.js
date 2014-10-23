@@ -1,3 +1,14 @@
+var KinesisAnalyticsSubmissionHandler = function(kinesisClient) {
+	this.submit = function(request) {
+		kinesisClient.put(JSON.stringify(request.data), {
+			partitionKey: request.data.key,
+			onSuccess: request.onSuccess,
+			onError: request.onError
+		});
+	}
+
+};
+
 var RevsysAnalyticsClient = function(options) {
 
 	this.id = "analytics-client_" + generateUUID();
@@ -10,6 +21,15 @@ var RevsysAnalyticsClient = function(options) {
 		staticData: {},
 		data: {},
 		window: window,
+		submissionHandler: new function() {
+			this.submit = function(request) {
+				var params = "data=" + JSON.stringify(request.data);
+				Ajax.post(this.config.endpoint + "/updateSession", params, {
+					onSuccess: request.onSuccess,
+					onError: request.onError
+				});
+			}
+		},
 		onReady: function() {},
 		onSuccess: function() {},
 		onError: function() {}
@@ -50,24 +70,8 @@ var RevsysAnalyticsClient = function(options) {
 		request.data = merge(request.data, getAllInfo());
 		request.data = merge(request.data, data);
 		request.data.requestId = requestId;
-		if (this.config.kinesis != null) {
-			this.config.kinesis.put(JSON.stringify(request.data), {
-				partitionKey: request.data.key,
-				onSuccess: request.onSuccess,
-				onError: request.onError
-			});
-		} else {
-			var params = "data=" + JSON.stringify(request.data);
-			if (request.data.key !== null) {
-				params = params + "&key=" + request.data.key;
-			}
-			Ajax.post(this.config.endpoint + "/updateSession", params, {
-				onSuccess: request.onSuccess,
-				onError: request.onError
-			});
-		}
-		return requestId;
-	}
+		this.config.submissionHandler.submit(request);
+	};
 
 	function getAllInfo() {
 		var data = {};
@@ -125,7 +129,7 @@ var RevsysAnalyticsClient = function(options) {
 	function getPageInfo() {
 		var page = {
 			location: $this.config.window.location,
-			performance: performance.timing,
+			performance: $this.config.window.performance.timing,
 			title: $this.config.window.document.title
 		}
 		return page;
@@ -173,12 +177,12 @@ var RevsysAnalyticsClient = function(options) {
 		return result;
 	}
 
-	function getFrames(){
+	function getFrames() {
 		var result = [];
 		var frames = $this.config.window.document.getElementsByTagName("iframe");
-		for(var i in frames){
+		for (var i in frames) {
 			var frame = frames[i];
-			if(frame.src){
+			if (frame.src) {
 				result.push({
 					src: frame.src
 				});
@@ -246,7 +250,7 @@ var RevsysAnalyticsClient = function(options) {
 	};
 
 	var $this = this;
-	window.addEventListener("load", function() {
+	this.config.window.addEventListener("load", function() {
 		setTimeout(function() {
 			init($this);
 		}, 0);
