@@ -5,3 +5,7 @@
 /node_modules
 /sublime
 /dist
+/test/test.html
+/test/iframe.html
+/test/parent.html
+/test/test.js
