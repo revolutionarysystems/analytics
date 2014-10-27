@@ -250,10 +250,17 @@ var RevsysAnalyticsClient = function(options) {
 	};
 
 	var $this = this;
-	this.config.window.addEventListener("load", function() {
-		setTimeout(function() {
-			init($this);
-		}, 0);
-	}, false);
+	console.log(this.config.window.performance.timing);
+	if (!this.config.window.performance.timing || this.config.window.performance.timing.loadEventEnd > 0) {
+		console.log("init");
+		init($this);
+	} else {
+		console.log("wait");
+		this.config.window.addEventListener("load", function() {
+			setTimeout(function() {
+				init($this);
+			}, 0);
+		}, false);
+	}
 
 }
