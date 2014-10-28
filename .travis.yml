@@ -1,3 +1,8 @@
 language: node_js
 script:
 - grunt ci
+notifications:
+  email:
+    - adam@revolutionarysystems.co.uk
+    - andrew@revolutionarysystems.co.uk
+    - ci@revolutionarysystems.co.uk
