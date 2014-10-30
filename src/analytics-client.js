@@ -121,7 +121,8 @@ var RevsysAnalyticsClient = function(options) {
 			userAgent: $this.config.window.navigator.userAgent,
 			mimeTypes: $this.config.window.navigator.mimeTypes.length,
 			plugins: $this.config.window.navigator.plugins.length,
-			language: $this.config.window.navigator.language
+			language: $this.config.window.navigator.language,
+			screen: {outerWidth: $this.config.window.outerWidth, outerHeight: $this.config.window.outerHeight, innerWidth: $this.config.window.innerWidth, innerHeight: $this.config.window.innerHeight}
 		}
 		return browser;
 	}
@@ -130,7 +131,8 @@ var RevsysAnalyticsClient = function(options) {
 		var page = {
 			location: $this.config.window.location,
 			performance: $this.config.window.performance.timing,
-			title: $this.config.window.document.title
+			title: $this.config.window.document.title,
+			screen: {width: $this.config.window.document.body.offsetWidth, height: $this.config.window.document.body.offsetHeight}
 		}
 		return page;
 	}
@@ -250,12 +252,9 @@ var RevsysAnalyticsClient = function(options) {
 	};
 
 	var $this = this;
-	console.log(this.config.window.performance.timing);
 	if (!this.config.window.performance.timing || this.config.window.performance.timing.loadEventEnd > 0) {
-		console.log("init");
 		init($this);
 	} else {
-		console.log("wait");
 		this.config.window.addEventListener("load", function() {
 			setTimeout(function() {
 				init($this);
