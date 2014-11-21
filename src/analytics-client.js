@@ -122,7 +122,7 @@ var RevsysAnalyticsClient = function(options) {
 			mimeTypes: $this.config.window.navigator.mimeTypes.length,
 			plugins: $this.config.window.navigator.plugins.length,
 			language: $this.config.window.navigator.language,
-			screen: {outerWidth: $this.config.window.outerWidth, outerHeight: $this.config.window.outerHeight, innerWidth: $this.config.window.innerWidth, innerHeight: $this.config.window.innerHeight}
+			screen: {outerWidth: $this.config.window.outerWidth, outerHeight: $this.config.window.outerHeight, innerWidth: $this.config.window.innerWidth, innerHeight: $this.config.window.innerHeight, viewportWidth: $this.config.window.document.documentElement.clientWidth, viewportHeight: $this.config.window.document.documentElement.clientHeight}
 		}
 		return browser;
 	}
@@ -132,7 +132,8 @@ var RevsysAnalyticsClient = function(options) {
 			location: $this.config.window.location,
 			performance: $this.config.window.performance.timing,
 			title: $this.config.window.document.title,
-			screen: {width: $this.config.window.document.body.offsetWidth, height: $this.config.window.document.body.offsetHeight}
+			referrer: $this.config.window.document.referrer,
+			screen: {width: $this.config.window.document.documentElement.offsetWidth, height: $this.config.window.document.documentElement.offsetHeight, xOffset: $this.config.window.pageXOffset, yOffset: $this.config.window.pageYOffset}
 		}
 		return page;
 	}
