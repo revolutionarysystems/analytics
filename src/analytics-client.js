@@ -35,10 +35,10 @@ var RevsysAnalyticsClient = function(options) {
 		onError: function() {}
 	}
 
-	if(!this.config.window.console || !this.config.window.console.error){
+	if (!this.config.window.console || !this.config.window.console.error) {
 		this.console = {};
-		this.console.error = function(e){};
-	}else{
+		this.console.error = function(e) {};
+	} else {
 		this.console = this.config.window.console
 	}
 
@@ -82,7 +82,7 @@ var RevsysAnalyticsClient = function(options) {
 
 	function getAllInfo() {
 		var data = {};
-		try{
+		try {
 			data.device = getDeviceInfo();
 		} catch (e) {
 			$this.console.error(e);
@@ -161,7 +161,9 @@ var RevsysAnalyticsClient = function(options) {
 				outerWidth: $this.config.window.outerWidth,
 				outerHeight: $this.config.window.outerHeight,
 				innerWidth: $this.config.window.innerWidth,
-				innerHeight: $this.config.window.innerHeight
+				innerHeight: $this.config.window.innerHeight,
+				viewportWidth: $this.config.window.document.documentElement.clientWidth,
+				viewportHeight: $this.config.window.document.documentElement.clientHeight
 			}
 		}
 		return browser;
@@ -171,9 +173,12 @@ var RevsysAnalyticsClient = function(options) {
 		var page = {
 			location: $this.config.window.location,
 			title: $this.config.window.document.title,
+			referrer: $this.config.window.document.referrer,
 			screen: {
-				width: $this.config.window.document.body.offsetWidth,
-				height: $this.config.window.document.body.offsetHeight
+				width: $this.config.window.document.documentElement.offsetWidth,
+				height: $this.config.window.document.documentElement.offsetHeight,
+				xOffset: $this.config.window.pageXOffset,
+				yOffset: $this.config.window.pageYOffset
 			}
 		}
 		if ($this.config.window.performance) {
