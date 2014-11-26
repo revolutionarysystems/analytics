@@ -76,6 +76,7 @@ var RevsysAnalyticsClient = function(options) {
 		request.data = this.config.staticData;
 		request.data = merge(request.data, getAllInfo());
 		request.data = merge(request.data, data);
+		request.data.timestamp = new Date().getTime();
 		request.data.requestId = requestId;
 		this.config.submissionHandler.submit(request);
 	};
