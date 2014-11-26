@@ -35,6 +35,13 @@ var RevsysAnalyticsClient = function(options) {
 		onError: function() {}
 	}
 
+	if(!this.config.window.console || !this.config.window.console.error){
+		this.console = {};
+		this.console.error = function(e){};
+	}else{
+		this.console = this.config.window.console
+	}
+
 	// Merge options with config
 	this.config = merge(this.config, options);
 
@@ -75,13 +82,41 @@ var RevsysAnalyticsClient = function(options) {
 
 	function getAllInfo() {
 		var data = {};
-		data.device = getDeviceInfo();
-		data.browser = getBrowserInfo();
-		data.page = getPageInfo();
-		data.connection = getConnectionInfo();
-		data.locale = getLocaleInfo();
-		data.scripts = getScripts();
-		data.frames = getFrames();
+		try{
+			data.device = getDeviceInfo();
+		} catch (e) {
+			$this.console.error(e);
+		}
+		try {
+			data.browser = getBrowserInfo();
+		} catch (e) {
+			$this.console.error(e);
+		}
+		try {
+			data.page = getPageInfo();
+		} catch (e) {
+			$this.console.error(e);
+		}
+		try {
+			data.connection = getConnectionInfo();
+		} catch (e) {
+			$this.console.error(e);
+		}
+		try {
+			data.locale = getLocaleInfo();
+		} catch (e) {
+			$this.console.error(e);
+		}
+		try {
+			data.scripts = getScripts();
+		} catch (e) {
+			$this.console.error(e);
+		}
+		try {
+			data.frames = getFrames();
+		} catch (e) {
+			$this.console.error(e);
+		}
 		return data;
 	}
 
@@ -122,7 +157,12 @@ var RevsysAnalyticsClient = function(options) {
 			mimeTypes: $this.config.window.navigator.mimeTypes.length,
 			plugins: $this.config.window.navigator.plugins.length,
 			language: $this.config.window.navigator.language,
-			screen: {outerWidth: $this.config.window.outerWidth, outerHeight: $this.config.window.outerHeight, innerWidth: $this.config.window.innerWidth, innerHeight: $this.config.window.innerHeight}
+			screen: {
+				outerWidth: $this.config.window.outerWidth,
+				outerHeight: $this.config.window.outerHeight,
+				innerWidth: $this.config.window.innerWidth,
+				innerHeight: $this.config.window.innerHeight
+			}
 		}
 		return browser;
 	}
@@ -130,9 +170,14 @@ var RevsysAnalyticsClient = function(options) {
 	function getPageInfo() {
 		var page = {
 			location: $this.config.window.location,
-			performance: $this.config.window.performance.timing,
 			title: $this.config.window.document.title,
-			screen: {width: $this.config.window.document.body.offsetWidth, height: $this.config.window.document.body.offsetHeight}
+			screen: {
+				width: $this.config.window.document.body.offsetWidth,
+				height: $this.config.window.document.body.offsetHeight
+			}
+		}
+		if ($this.config.window.performance) {
+			page.performance = $this.config.window.performance.timing;
 		}
 		return page;
 	}
@@ -252,7 +297,7 @@ var RevsysAnalyticsClient = function(options) {
 	};
 
 	var $this = this;
-	if (!this.config.window.performance.timing || this.config.window.performance.timing.loadEventEnd > 0) {
+	if (!this.config.window.performance || !this.config.window.performance.timing || this.config.window.performance.timing.loadEventEnd > 0) {
 		init($this);
 	} else {
 		this.config.window.addEventListener("load", function() {

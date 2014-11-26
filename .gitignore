@@ -9,3 +9,6 @@
 /test/iframe.html
 /test/parent.html
 /test/test.js
+/test/jschild.js
+/test/jsframe.html
+/test/jsframe.js
