@@ -73,7 +73,8 @@ var RevsysAnalyticsClient = function(options) {
 		var requestId = generateUUID();
 		// Merge options with request
 		request = merge(request, options);
-		request.data = this.config.staticData;
+		request.data = {}
+		request.data = merge(request.data, this.config.staticData);
 		request.data = merge(request.data, getAllInfo());
 		request.data = merge(request.data, data);
 		request.data.timestamp = new Date().getTime();
