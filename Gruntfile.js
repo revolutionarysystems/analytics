@@ -19,6 +19,7 @@ module.exports = function(grunt) {
   // Tasks
 
   grunt.registerTask('build', ['clean', 'concat']);
+  grunt.registerTask('dist', ['haven:update', 'build']);
 
   grunt.registerTask('deploy', ['haven:deploy']);
   grunt.registerTask('ci', ['haven:deployOnly']);

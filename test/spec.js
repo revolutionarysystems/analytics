@@ -11,6 +11,16 @@ describe("AnalyticsClient", function() {
 			}});
 			analyticsClient.updateSession({});
 		});
+		it("should return a request id", function(done) {
+			var analyticsClient = new RevsysAnalyticsClient({submissionHandler: new function(){
+				this.submit = function(request){
+					
+				};
+			}});
+			var requestId = analyticsClient.updateSession({});
+			expect(requestId).not.toBeUndefined();
+			done();
+		});
 		it("should submit custom data", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({submissionHandler: new function(){
 				this.submit = function(request){

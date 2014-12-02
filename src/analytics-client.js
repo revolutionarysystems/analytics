@@ -80,6 +80,7 @@ var RevsysAnalyticsClient = function(options) {
 		request.data.timestamp = new Date().getTime();
 		request.data.requestId = requestId;
 		this.config.submissionHandler.submit(request);
+		return requestId;
 	};
 
 	function getAllInfo() {
