@@ -18,6 +18,8 @@ var RevsysAnalyticsClient = function(options) {
 		kinesis: null,
 		endpoint: "http://localhost:8999/analytics",
 		fetchLocation: true,
+		updateSessionOnHashChange: true,
+		updateSessionOnResize: true,
 		staticData: {},
 		data: {},
 		window: window,
@@ -45,6 +47,8 @@ var RevsysAnalyticsClient = function(options) {
 	// Merge options with config
 	this.config = merge(this.config, options);
 
+	var resizeTimeoutId = false;
+
 	function init(self) {
 		self.userId = getUserId();
 		self.sessionId = getSessionId();
@@ -60,9 +64,21 @@ var RevsysAnalyticsClient = function(options) {
 				onSuccess: self.config.onReady
 			});
 		}
-		self.config.window.addEventListener("hashchange", function() {
-			self.updateSession();
-		});
+		if (self.config.updateSessionOnHashChange === true) {
+			addEventListener(self.config.window, "hashchange", function() {
+				self.updateSession();
+			});
+		}
+		if (self.config.updateSessionOnResize === true) {
+			addEventListener(self.config.window, "resize", function() {
+				if (resizeTimeoutId !== false) {
+					self.config.window.clearTimeout(resizeTimeoutId);
+				}
+				resizeTimeoutId = self.config.window.setTimeout(function() {
+					self.updateSession();
+				}, 1000);
+			});
+		}
 	}
 
 	this.updateSession = function(data, options) {
@@ -304,11 +320,19 @@ var RevsysAnalyticsClient = function(options) {
 		return uuid;
 	};
 
+	function addEventListener(object, event, listener) {
+		if (object.addEventListener) {
+			object.addEventListener(event, listener);
+		} else if (object.attachEvent) {
+			object.attachEvent(event, listener);
+		}
+	}
+
 	var $this = this;
 	if (!this.config.window.performance || !this.config.window.performance.timing || this.config.window.performance.timing.loadEventEnd > 0) {
 		init($this);
 	} else {
-		this.config.window.addEventListener("load", function() {
+		addEventListener(this.config.window, "load", function() {
 			setTimeout(function() {
 				init($this);
 			}, 0);
