@@ -24,6 +24,8 @@ var RevsysAnalyticsClient = function(options) {
 		updateSessionOnResize: true,
 		staticData: {},
 		data: {},
+		elementSelector: "data-analytics",
+		clickSelector: "data-analytics-click",
 		window: window,
 		submissionHandler: new function() {
 			this.submit = function(request) {
@@ -73,6 +75,18 @@ var RevsysAnalyticsClient = function(options) {
 				}, 1000);
 			});
 		};
+		if ($this.config.clickSelector && $this.config.window.document.querySelectorAll) {
+			var elements = $this.config.window.document.querySelectorAll("[" + $this.config.clickSelector + "]");
+			for (var i = 0; i < elements.length; i++) {
+				var element = elements.item(i);
+				var eventName = element.getAttribute($this.config.clickSelector);
+				addEventListener(element, "click", function(e) {
+					$this.updateSession({
+						"click": eventName
+					});
+				});
+			}
+		}
 		getLocationInfo();
 	}
 
@@ -90,7 +104,7 @@ var RevsysAnalyticsClient = function(options) {
 		request.data = merge(request.data, data);
 		var now = new Date().getTime();
 		request.data.timestamp = now - serverTimeOffset;
-		request.data.clientTimestamp = now; 
+		request.data.clientTimestamp = now;
 		request.data.requestId = requestId;
 		this.config.submissionHandler.submit(request);
 		return requestId;
@@ -132,6 +146,25 @@ var RevsysAnalyticsClient = function(options) {
 			data.frames = getFrames();
 		} catch (e) {
 			$this.console.error(e);
+		}
+		if ($this.config.window.document.querySelectorAll) {
+			if ($this.config.elementSelector) {
+				var elements = $this.config.window.document.querySelectorAll("[" + $this.config.elementSelector + "]");
+				for (var i = 0; i < elements.length; i++) {
+					var element = elements.item(i);
+					var propertyName = element.getAttribute($this.config.elementSelector);
+					var propertyValue = null;
+					if (element.tagName == "INPUT") {
+						propertyValue = element.value;
+					} else {
+						var childNodes = element.childNodes;
+						if (childNodes.length == 1 && childNodes[0].nodeType == 3) {
+							propertyValue = element.innerHTML;
+						}
+					}
+					data[propertyName] = propertyValue;
+				}
+			}
 		}
 		return data;
 	}
@@ -332,7 +365,6 @@ var RevsysAnalyticsClient = function(options) {
 	if (!this.config.window.performance || !this.config.window.performance.timing || this.config.window.performance.timing.loadEventStart > 0) {
 		init($this);
 	} else {
-		console.log(window.performance.timing.loadEventEnd);
 		addEventListener(this.config.window, "load", function() {
 			setTimeout(function() {
 				init($this);
