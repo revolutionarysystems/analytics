@@ -14,10 +14,12 @@ var RevsysAnalyticsClient = function(options) {
 	var id = "RevsysAnalyticsClientInstance";
 	window[id] = this;
 
+	var serverTime;
+	var serverTimeOffset;
+
 	this.config = {
 		kinesis: null,
 		endpoint: "http://localhost:8999/analytics",
-		fetchLocation: true,
 		updateSessionOnHashChange: true,
 		updateSessionOnResize: true,
 		staticData: {},
@@ -56,19 +58,11 @@ var RevsysAnalyticsClient = function(options) {
 		staticData.userId = self.userId;
 		staticData.sessionId = self.sessionId;
 		staticData.domain = self.config.window.location.hostname;
-		if (self.config.fetchLocation) {
-			getLocationInfo();
-		} else {
-			var data = self.config.data;
-			self.updateSession(data, {
-				onSuccess: self.config.onReady
-			});
-		}
 		if (self.config.updateSessionOnHashChange === true) {
 			addEventListener(self.config.window, "hashchange", function() {
 				self.updateSession();
 			});
-		}
+		};
 		if (self.config.updateSessionOnResize === true) {
 			addEventListener(self.config.window, "resize", function() {
 				if (resizeTimeoutId !== false) {
@@ -78,7 +72,8 @@ var RevsysAnalyticsClient = function(options) {
 					self.updateSession();
 				}, 1000);
 			});
-		}
+		};
+		getLocationInfo();
 	}
 
 	this.updateSession = function(data, options) {
@@ -93,7 +88,9 @@ var RevsysAnalyticsClient = function(options) {
 		request.data = merge(request.data, this.config.staticData);
 		request.data = merge(request.data, getAllInfo());
 		request.data = merge(request.data, data);
-		request.data.timestamp = new Date().getTime();
+		var now = new Date().getTime();
+		request.data.timestamp = now - serverTimeOffset;
+		request.data.clientTimestamp = now; 
 		request.data.requestId = requestId;
 		this.config.submissionHandler.submit(request);
 		return requestId;
@@ -279,6 +276,8 @@ var RevsysAnalyticsClient = function(options) {
 			region: data.headers['X-AppEngine-Region'],
 			coords: data.headers['X-AppEngine-CityLatLong'],
 		}
+		serverTime = data.timestamp;
+		serverTimeOffset = new Date().getTime() - serverTime;
 		this.config.staticData.ipAddress = data.ipAddress;
 		this.updateSession(this.config.data, {
 			onSuccess: this.config.onReady
