@@ -6,10 +6,11 @@ describe("AnalyticsClient", function() {
 					var data = request.data;
 					expect(data.page.title).toBe("Jasmine Spec Runner");
 					expect(data.page.performance.fetchStart).toBeGreaterThan(0);
+					expect(data.location.city).not.toBeUndefined();
+					expect(data.location.coords).not.toBeUndefined();
 					done();
 				};
 			}});
-			analyticsClient.updateSession({});
 		});
 		it("should return a request id", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({submissionHandler: new function(){
@@ -34,7 +35,6 @@ describe("AnalyticsClient", function() {
 			analyticsClient.config.submissionHandler = new function(){
 				this.submit = function(request){
 					var data = request.data;
-					console.log(data);
 					expect(data.page.title).toBe("Jasmine Spec Runner");
 					expect(data.p1).toBe("v1");
 					expect(data.p2).toBeUndefined();

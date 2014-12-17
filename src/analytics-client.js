@@ -11,8 +11,8 @@ var KinesisAnalyticsSubmissionHandler = function(kinesisClient) {
 
 var RevsysAnalyticsClient = function(options) {
 
-	this.id = "analytics-client_" + generateUUID();
-	window[this.id] = this;
+	var id = "RevsysAnalyticsClientInstance";
+	window[id] = this;
 
 	this.config = {
 		kinesis: null,
@@ -267,18 +267,19 @@ var RevsysAnalyticsClient = function(options) {
 		el.async = true;
 		document.getElementsByTagName('script')[0].appendChild(el);
 		setTimeout(function() { // set source after insertion - needed for older versions of IE
-			el.src = "https://ajaxhttpheaders1.appspot.com/?callback=window['" + $this.id + "'].processLocationInfo";
+			el.src = "https://requestmirror.appspot.com/?callback=window." + id + ".processLocationInfo";
 		}, 0);
 	}
 
 	this.processLocationInfo = function(data) {
 		this.config.staticData.location = {
-			language: data['Accept-Language'],
-			city: data['X-Appengine-City'],
-			country: data['X-Appengine-Country'],
-			region: data['X-Appengine-Region'],
-			coords: data['X-Appengine-Citylatlong']
+			language: data.headers['Accept-Language'],
+			city: data.headers['X-AppEngine-City'],
+			country: data.headers['X-AppEngine-Country'],
+			region: data.headers['X-AppEngine-Region'],
+			coords: data.headers['X-AppEngine-CityLatLong'],
 		}
+		this.config.staticData.ipAddress = data.ipAddress;
 		this.updateSession(this.config.data, {
 			onSuccess: this.config.onReady
 		});
@@ -329,9 +330,10 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 	var $this = this;
-	if (!this.config.window.performance || !this.config.window.performance.timing || this.config.window.performance.timing.loadEventEnd > 0) {
+	if (!this.config.window.performance || !this.config.window.performance.timing || this.config.window.performance.timing.loadEventStart > 0) {
 		init($this);
 	} else {
+		console.log(window.performance.timing.loadEventEnd);
 		addEventListener(this.config.window, "load", function() {
 			setTimeout(function() {
 				init($this);
