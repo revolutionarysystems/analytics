@@ -51,11 +51,12 @@ var RevsysAnalyticsClient = function(options) {
 	// Merge options with config
 	this.config = merge(this.config, options);
 
+	this.userId = getUserId();
+	this.sessionId = getSessionId();
+
 	var resizeTimeoutId = false;
 
 	function init(self) {
-		self.userId = getUserId();
-		self.sessionId = getSessionId();
 		var staticData = self.config.staticData;
 		staticData.userId = self.userId;
 		staticData.sessionId = self.sessionId;
