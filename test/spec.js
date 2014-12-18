@@ -10,6 +10,7 @@ describe("AnalyticsClient", function() {
 						expect(data.page.performance.fetchStart).toBeGreaterThan(0);
 						expect(data.location.city).not.toBeUndefined();
 						expect(data.location.coords).not.toBeUndefined();
+						expect(data.event.type).toBe("load");
 						done();
 					};
 				}
@@ -49,7 +50,8 @@ describe("AnalyticsClient", function() {
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						if (init) {
-							expect(request.data.click).toBe("testButton1");
+							expect(request.data.event.type).toBe("click");
+							expect(request.data.event.target).toBe("testButton1");
 							done();
 						}else{
 							init = true;
@@ -89,5 +91,5 @@ describe("AnalyticsClient", function() {
 				p3: "v3"
 			});
 		});
-	});
+	 });
 });

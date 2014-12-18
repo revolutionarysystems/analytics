@@ -62,7 +62,11 @@ var RevsysAnalyticsClient = function(options) {
 		staticData.domain = self.config.window.location.hostname;
 		if (self.config.updateSessionOnHashChange === true) {
 			addEventListener(self.config.window, "hashchange", function() {
-				self.updateSession();
+				self.updateSession({
+						event: {
+							type: "hashchange",
+						}
+					});
 			});
 		};
 		if (self.config.updateSessionOnResize === true) {
@@ -82,7 +86,10 @@ var RevsysAnalyticsClient = function(options) {
 				var eventName = element.getAttribute($this.config.clickSelector);
 				addEventListener(element, "click", function(e) {
 					$this.updateSession({
-						"click": eventName
+						event: {
+							type: "click",
+							target: eventName
+						}
 					});
 				});
 			}
@@ -102,6 +109,11 @@ var RevsysAnalyticsClient = function(options) {
 		request.data = merge(request.data, this.config.staticData);
 		request.data = merge(request.data, getAllInfo());
 		request.data = merge(request.data, data);
+		if (!request.data.event) {
+			request.data.event = {
+				type: "unknown"
+			};
+		}
 		var now = new Date().getTime();
 		request.data.timestamp = now - serverTimeOffset;
 		request.data.clientTimestamp = now;
@@ -312,7 +324,11 @@ var RevsysAnalyticsClient = function(options) {
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
 		this.config.staticData.ipAddress = data.ipAddress;
-		this.updateSession(this.config.data, {
+		var initData = copy(this.config.data);
+		initData.event = {
+			"type": "load"
+		};
+		this.updateSession(initData, {
 			onSuccess: this.config.onReady
 		});
 	}
@@ -323,6 +339,10 @@ var RevsysAnalyticsClient = function(options) {
 			metered: "not supported"
 		};
 		return flatten(navConnection);
+	}
+
+	function copy(obj){
+		return flatten(obj);
 	}
 
 	function flatten(obj) {
