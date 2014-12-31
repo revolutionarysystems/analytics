@@ -11,6 +11,7 @@ describe("AnalyticsClient", function() {
 						expect(data.location.city).not.toBeUndefined();
 						expect(data.location.coords).not.toBeUndefined();
 						expect(data.event.type).toBe("load");
+						expect(data.localIPAddress.length).toBeGreaterThan(0);
 						done();
 					};
 				}

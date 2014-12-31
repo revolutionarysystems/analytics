@@ -64,10 +64,10 @@ var RevsysAnalyticsClient = function(options) {
 		if (self.config.updateSessionOnHashChange === true) {
 			addEventListener(self.config.window, "hashchange", function() {
 				self.updateSession({
-						event: {
-							type: "hashchange",
-						}
-					});
+					event: {
+						type: "hashchange",
+					}
+				});
 			});
 		};
 		if (self.config.updateSessionOnResize === true) {
@@ -99,7 +99,14 @@ var RevsysAnalyticsClient = function(options) {
 				});
 			}
 		}
-		getLocationInfo();
+		try {
+			getLocalIPs(function(localIPs) {
+				staticData.localIPAddress = localIPs;
+				getLocationInfo();
+			});
+		} catch (e) {
+			$this.console.error(e);
+		}
 	}
 
 	this.updateSession = function(data, options) {
@@ -309,6 +316,70 @@ var RevsysAnalyticsClient = function(options) {
 		return result;
 	}
 
+	function getLocalIPs(callback) {
+		var localIPs = [];
+		var RTCPeerConnection = /*window.RTCPeerConnection ||*/ $this.config.window.webkitRTCPeerConnection || $this.config.window.mozRTCPeerConnection;
+
+		if (RTCPeerConnection) {
+			(function() {
+				var rtc = new RTCPeerConnection({
+					iceServers: []
+				});
+				if (1 || $this.config.window.mozRTCPeerConnection) { // FF [and now Chrome!] needs a channel/stream to proceed
+					rtc.createDataChannel('', {
+						reliable: false
+					});
+				};
+
+				rtc.onicecandidate = function(evt) {
+					if (evt.candidate == null) {
+						callback(localIPs);
+					} else {
+						// convert the candidate to SDP so we can run it through our general parser
+						// see https://twitter.com/lancestout/status/525796175425720320 for details
+						if (evt.candidate) grepSDP("a=" + evt.candidate.candidate);
+					}
+				};
+				rtc.createOffer(function(offerDesc) {
+					grepSDP(offerDesc.sdp);
+					rtc.setLocalDescription(offerDesc);
+				}, function(e) {
+					callback([]);
+				});
+
+
+				var addrs = Object.create(null);
+				addrs["0.0.0.0"] = false;
+
+				function addIP(newAddr) {
+					if (newAddr in addrs) return;
+					else addrs[newAddr] = true;
+					localIPs.push(newAddr);
+				}
+
+				function grepSDP(sdp) {
+					var hosts = [];
+					sdp.split('\r\n').forEach(function(line) { // c.f. http://tools.ietf.org/html/rfc4566#page-39
+						if (~line.indexOf("a=candidate")) { // http://tools.ietf.org/html/rfc4566#section-5.13
+							var parts = line.split(' '), // http://tools.ietf.org/html/rfc5245#section-15.1
+								addr = parts[4],
+								type = parts[7];
+							if (type === 'host') {
+								addIP(addr);
+							}
+						} else if (~line.indexOf("c=")) { // http://tools.ietf.org/html/rfc4566#section-5.7
+							var parts = line.split(' '),
+								addr = parts[2];
+							addIP(addr);
+						}
+					});
+				}
+			})();
+		} else {
+			callback([]);
+		}
+	}
+
 	function getLocationInfo() {
 		var el = document.createElement('script');
 		el.async = true;
@@ -346,7 +417,7 @@ var RevsysAnalyticsClient = function(options) {
 		return flatten(navConnection);
 	}
 
-	function copy(obj){
+	function copy(obj) {
 		return flatten(obj);
 	}
 
