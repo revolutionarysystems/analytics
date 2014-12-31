@@ -76,7 +76,11 @@ var RevsysAnalyticsClient = function(options) {
 					self.config.window.clearTimeout(resizeTimeoutId);
 				}
 				resizeTimeoutId = self.config.window.setTimeout(function() {
-					self.updateSession();
+					self.updateSession({
+						event: {
+							type: "resize",
+						}
+					});
 				}, 1000);
 			});
 		};
