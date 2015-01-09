@@ -61,6 +61,7 @@ var RevsysAnalyticsClient = function(options) {
 		staticData.userId = self.userId;
 		staticData.sessionId = self.sessionId;
 		staticData.domain = self.config.window.location.hostname;
+		staticData.ipAddress = {};
 		if (self.config.updateSessionOnHashChange === true) {
 			addEventListener(self.config.window, "hashchange", function() {
 				self.updateSession({
@@ -101,7 +102,7 @@ var RevsysAnalyticsClient = function(options) {
 		}
 		try {
 			getLocalIPs(function(localIPs) {
-				staticData.localIPAddress = localIPs;
+				staticData.ipAddress.local = localIPs;
 				getLocationInfo();
 			});
 		} catch (e) {
@@ -399,7 +400,7 @@ var RevsysAnalyticsClient = function(options) {
 		}
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
-		this.config.staticData.ipAddress = data.ipAddress;
+		this.config.staticData.ipAddress.remote = data.ipAddress;
 		var initData = copy(this.config.data);
 		initData.event = {
 			"type": "load"
