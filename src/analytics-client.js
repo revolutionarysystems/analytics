@@ -247,6 +247,7 @@ var RevsysAnalyticsClient = function(options) {
 			location: $this.config.window.location,
 			title: $this.config.window.document.title,
 			referrer: $this.config.window.document.referrer,
+			iframed: $this.config.window.top.location == $this.config.window.location,
 			screen: {
 				width: $this.config.window.document.documentElement.offsetWidth,
 				height: $this.config.window.document.documentElement.offsetHeight,
@@ -307,11 +308,11 @@ var RevsysAnalyticsClient = function(options) {
 		var frames = $this.config.window.document.getElementsByTagName("iframe");
 		for (var i in frames) {
 			var frame = frames[i];
-			if (frame.src) {
-				result.push({
-					src: frame.src
-				});
-			}
+			result.push({
+				src: frame.src,
+				name: frame.name,
+				id: frame.id
+			});
 		}
 		return result;
 	}
