@@ -11,6 +11,7 @@ var KinesisAnalyticsSubmissionHandler = function(kinesisClient) {
 
 var RevsysAnalyticsClient = function(options) {
 
+	var $this = this;
 	var id = "RevsysAnalyticsClientInstance";
 	window[id] = this;
 
@@ -30,7 +31,7 @@ var RevsysAnalyticsClient = function(options) {
 		submissionHandler: new function() {
 			this.submit = function(request) {
 				var params = "data=" + JSON.stringify(request.data);
-				Ajax.post(this.config.endpoint + "/updateSession", params, {
+				Ajax.post($this.config.endpoint, params, {
 					onSuccess: request.onSuccess,
 					onError: request.onError
 				});
@@ -62,6 +63,23 @@ var RevsysAnalyticsClient = function(options) {
 		staticData.sessionId = self.sessionId;
 		staticData.domain = self.config.window.location.hostname;
 		staticData.ipAddress = {};
+		addEventListener(self.config.window, "beforeunload", function(e) {
+			var activeElement = null;
+			if(e.target && e.target.activeElement){
+				activeElement = {
+					type: e.target.activeElement.tagName,
+					id: e.target.activeElement.id,
+					href: e.target.activeElement.href,
+					target: e.target.activeElement.target,
+				};
+			}
+			self.updateSession({
+				event: {
+					type: "unload",
+					activeElement: activeElement
+				}
+			});
+		});
 		if (self.config.updateSessionOnHashChange === true) {
 			addEventListener(self.config.window, "hashchange", function() {
 				self.updateSession({
