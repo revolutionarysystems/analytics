@@ -2,6 +2,7 @@ describe("AnalyticsClient", function() {
 	describe("#updateSession()", function() {
 		it("should submit all the data about the current session", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;
@@ -21,6 +22,7 @@ describe("AnalyticsClient", function() {
 		});
 		it("should send network data if requested", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
 				includeNetworkData: true,
 				submissionHandler: new function() {
 					this.submit = function(request) {
@@ -35,6 +37,7 @@ describe("AnalyticsClient", function() {
 		});
 		it("should send requested headers if available", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
 				includeHeaders: ["User-Agent"],
 				submissionHandler: new function() {
 					this.submit = function(request) {
@@ -48,6 +51,7 @@ describe("AnalyticsClient", function() {
 		});
 		it("should return a request id", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
 				submissionHandler: new function() {
 					this.submit = function(request) {
 
@@ -60,6 +64,7 @@ describe("AnalyticsClient", function() {
 		});
 		it("should pick up data from indicated elements", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
 				elementSelector: "data-analytics-test",
 				submissionHandler: new function() {
 					this.submit = function(request) {
@@ -76,6 +81,7 @@ describe("AnalyticsClient", function() {
 		it("should update session on indicated click events", function(done) {
 			var init = false;
 			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
 				clickSelector: "data-analytics-click-test",
 				submissionHandler: new function() {
 					this.submit = function(request) {
@@ -93,6 +99,7 @@ describe("AnalyticsClient", function() {
 		});
 		it("should submit custom data", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;

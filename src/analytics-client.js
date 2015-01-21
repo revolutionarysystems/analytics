@@ -37,6 +37,7 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Default config
 	this.config = {
+		persistSessionState: true,
 		updateSessionOnHashChange: true,
 		updateSessionOnUnload: true,
 		updateSessionOnResize: true,
@@ -82,14 +83,26 @@ var RevsysAnalyticsClient = function(options) {
 	// Timeout id to allow buffering of resize request
 	var resizeTimeoutId = false;
 
+	// Static data sent with every request
+	var staticData = {
+		ipAddress: {}
+	};
+
 	// Initialise the client
 	function init() {
+		// Setup session
+		var newSession = true;
+		var sessionData = getSessionData();
+		if(sessionData){
+			newSession = false;
+			serverTime = sessionData.serverTime;
+			serverTimeOffset = sessionData.serverTimeOffset;
+			staticData = sessionData.data;
+		}
 		// Setup static data
-		var staticData = $this.config.staticData;
 		staticData.userId = $this.userId;
 		staticData.sessionId = $this.sessionId;
 		staticData.domain = targetWindow.location.hostname;
-		staticData.ipAddress = {};
 		// Add event listeners
 		if ($this.config.updateSessionOnUnload === true) {
 			addEventListener(targetWindow, "beforeunload", function(e) {
@@ -148,11 +161,31 @@ var RevsysAnalyticsClient = function(options) {
 				});
 			}
 		}
-		callSafe(function(){
-			getLocalIPs(function(localIPs) {
-				staticData.ipAddress.local = localIPs;
-				getServerInfo();
+		if(newSession){
+			callSafe(function(){
+				getLocalIPs(function(localIPs) {
+					staticData.ipAddress.local = localIPs;
+					getServerInfo();
+				});
 			});
+		}else{
+			initSession();
+		}
+	}
+
+	// Send first analytics
+	function initSession(){
+		persistSessionData({
+			serverTime: serverTime,
+			serverTimeOffset: serverTimeOffset,
+			data: staticData
+		});
+		var initData = copy($this.config.initialData);
+		initData.event = {
+			"type": "load"
+		};
+		$this.updateSession(initData, {
+			onSuccess: $this.config.onReady
 		});
 	}
 
@@ -166,6 +199,7 @@ var RevsysAnalyticsClient = function(options) {
 		// Merge options with request
 		request = merge(request, options);
 		request.data = {}
+		request.data = merge(request.data, staticData);
 		request.data = merge(request.data, this.config.staticData);
 		request.data = merge(request.data, getAllInfo());
 		request.data = merge(request.data, data);
@@ -247,6 +281,26 @@ var RevsysAnalyticsClient = function(options) {
 			sessionStorage.sessionId = sessionId;
 		}
 		return sessionId;
+	}
+
+	// Get session data from sessionStorage
+	function getSessionData(){
+		if($this.config.persistSessionState != true){
+			return null;
+		}
+		var sessionData = sessionStorage.sessionData;
+		if(sessionData == undefined){
+			return null;
+		}else{
+			return JSON.parse(sessionData);
+		}
+	}
+
+	// Persist session data
+	function persistSessionData(data){
+		if($this.config.persistSessionState == true){
+			sessionStorage.sessionData = JSON.stringify(data);
+		}
 	}
 
 	// Device information
@@ -442,7 +496,7 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Process response from google appengine request mirror
 	this.processServerInfo = function(data) {
-		this.config.staticData.location = {
+		staticData.location = {
 			language: data.headers['Accept-Language'],
 			city: data.headers['X-AppEngine-City'],
 			country: data.headers['X-AppEngine-Country'],
@@ -450,25 +504,19 @@ var RevsysAnalyticsClient = function(options) {
 			coords: data.headers['X-AppEngine-CityLatLong'],
 		}
 		if (data.network) {
-			this.config.staticData.network = data.network;
+			staticData.network = data.network;
 		}
-		this.config.staticData.headers = {};
+		staticData.headers = {};
 		for (var i in this.config.includeHeaders) {
 			var header = this.config.includeHeaders[i];
 			if (data.headers[header]) {
-				this.config.staticData.headers[header] = data.headers[header];
+				staticData.headers[header] = data.headers[header];
 			}
 		}
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
-		this.config.staticData.ipAddress.remote = data.ipAddress;
-		var initData = copy(this.config.initialData);
-		initData.event = {
-			"type": "load"
-		};
-		this.updateSession(initData, {
-			onSuccess: this.config.onReady
-		});
+		staticData.ipAddress.remote = data.ipAddress;
+		initSession();
 	}
 
 	// Connection details
