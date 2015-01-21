@@ -62,6 +62,9 @@ var RevsysAnalyticsClient = function(options) {
 		onError: function() {}
 	}
 
+	// Merge options with config
+	this.config = merge(this.config, options);
+
 	// Target window object
 	var targetWindow = this.config.window;
 
@@ -72,9 +75,6 @@ var RevsysAnalyticsClient = function(options) {
 	} else {
 		this.console = targetWindow.console
 	}
-
-	// Merge options with config
-	this.config = merge(this.config, options);
 
 	// Get userId and sessionId
 	this.userId = getUserId();
