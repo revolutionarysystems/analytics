@@ -33,6 +33,19 @@ describe("AnalyticsClient", function() {
 				}
 			});
 		});
+		it("should send requested headers if available", function(done) {
+			var analyticsClient = new RevsysAnalyticsClient({
+				includeHeaders: ["User-Agent"],
+				submissionHandler: new function() {
+					this.submit = function(request) {
+						var data = request.data;
+						console.log(data);
+						expect(data.headers['User-Agent']).not.toBeUndefined();
+						done();
+					};
+				}
+			});
+		});
 		it("should return a request id", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
 				submissionHandler: new function() {

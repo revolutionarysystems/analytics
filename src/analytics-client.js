@@ -28,6 +28,11 @@ var RevsysAnalyticsClient = function(options) {
 		elementSelector: "data-analytics",
 		clickSelector: "data-analytics-click",
 		includeNetworkData: false,
+		includeHeaders: [
+			"X-Forwarded-For",
+			"Client-ip",
+			"Via"
+		],
 		window: window,
 		submissionHandler: new function() {
 			this.submit = function(request) {
@@ -66,7 +71,7 @@ var RevsysAnalyticsClient = function(options) {
 		staticData.ipAddress = {};
 		addEventListener(self.config.window, "beforeunload", function(e) {
 			var activeElement = null;
-			if(e.target && e.target.activeElement){
+			if (e.target && e.target.activeElement) {
 				activeElement = {
 					type: e.target.activeElement.tagName,
 					id: e.target.activeElement.id,
@@ -407,7 +412,7 @@ var RevsysAnalyticsClient = function(options) {
 		document.getElementsByTagName('script')[0].appendChild(el);
 		setTimeout(function() { // set source after insertion - needed for older versions of IE
 			var src = "https://requestmirror.appspot.com/?callback=window." + id + ".processLocationInfo";
-			if($this.config.includeNetworkData == true){
+			if ($this.config.includeNetworkData == true) {
 				src = src + "&includeNetwork=true";
 			}
 			el.src = src;
@@ -422,8 +427,15 @@ var RevsysAnalyticsClient = function(options) {
 			region: data.headers['X-AppEngine-Region'],
 			coords: data.headers['X-AppEngine-CityLatLong'],
 		}
-		if(data.network){
+		if (data.network) {
 			this.config.staticData.network = data.network;
+		}
+		this.config.staticData.headers = {};
+		for(var i in this.config.includeHeaders){
+			var header = this.config.includeHeaders[i];
+			if(data.headers[header]){
+				this.config.staticData.headers[header] = data.headers[header];
+			}
 		}
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
