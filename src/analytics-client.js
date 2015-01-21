@@ -1,3 +1,15 @@
+// Submission handler to send data via an ajax post
+var AjaxAnalyticsSubmissionHandler = function(url) {
+	this.submit = function(request) {
+		var params = "data=" + JSON.stringify(request.data);
+		Ajax.post(url, params, {
+			onSuccess: request.onSuccess,
+			onError: request.onError
+		});
+	}
+}
+
+// Submission handler to send data to kinesis
 var KinesisAnalyticsSubmissionHandler = function(kinesisClient) {
 	this.submit = function(request) {
 		kinesisClient.put(JSON.stringify(request.data), {
@@ -11,20 +23,25 @@ var KinesisAnalyticsSubmissionHandler = function(kinesisClient) {
 
 var RevsysAnalyticsClient = function(options) {
 
+	// Store reference to self
 	var $this = this;
+
+	// Store reference to self in window object for jsonp callbacks
+	// TODO - make id random to allow multiple clients
 	var id = "RevsysAnalyticsClientInstance";
 	window[id] = this;
 
+	// Store time offset between server and client
 	var serverTime;
 	var serverTimeOffset;
 
+	// Default config
 	this.config = {
-		kinesis: null,
-		endpoint: "http://localhost:8999/analytics",
 		updateSessionOnHashChange: true,
+		updateSessionOnUnload: true,
 		updateSessionOnResize: true,
 		staticData: {},
-		data: {},
+		initialData: {},
 		elementSelector: "data-analytics",
 		clickSelector: "data-analytics-click",
 		includeNetworkData: false,
@@ -36,11 +53,7 @@ var RevsysAnalyticsClient = function(options) {
 		window: window,
 		submissionHandler: new function() {
 			this.submit = function(request) {
-				var params = "data=" + JSON.stringify(request.data);
-				Ajax.post($this.config.endpoint, params, {
-					onSuccess: request.onSuccess,
-					onError: request.onError
-				});
+				throw "You must specify a submission handler";
 			}
 		},
 		onReady: function() {},
@@ -48,60 +61,71 @@ var RevsysAnalyticsClient = function(options) {
 		onError: function() {}
 	}
 
-	if (!this.config.window.console || !this.config.window.console.error) {
+	// Target window object
+	var targetWindow = this.config.window;
+
+	// Provide a console.error function if one doesn't exist
+	if (!targetWindow.console || !targetWindow.console.error) {
 		this.console = {};
 		this.console.error = function(e) {};
 	} else {
-		this.console = this.config.window.console
+		this.console = targetWindow.console
 	}
 
 	// Merge options with config
 	this.config = merge(this.config, options);
 
+	// Get userId and sessionId
 	this.userId = getUserId();
 	this.sessionId = getSessionId();
 
+	// Timeout id to allow buffering of resize request
 	var resizeTimeoutId = false;
 
-	function init(self) {
-		var staticData = self.config.staticData;
-		staticData.userId = self.userId;
-		staticData.sessionId = self.sessionId;
-		staticData.domain = self.config.window.location.hostname;
+	// Initialise the client
+	function init() {
+		// Setup static data
+		var staticData = $this.config.staticData;
+		staticData.userId = $this.userId;
+		staticData.sessionId = $this.sessionId;
+		staticData.domain = targetWindow.location.hostname;
 		staticData.ipAddress = {};
-		addEventListener(self.config.window, "beforeunload", function(e) {
-			var activeElement = null;
-			if (e.target && e.target.activeElement) {
-				activeElement = {
-					type: e.target.activeElement.tagName,
-					id: e.target.activeElement.id,
-					href: e.target.activeElement.href,
-					target: e.target.activeElement.target,
-				};
-			}
-			self.updateSession({
-				event: {
-					type: "unload",
-					activeElement: activeElement
+		// Add event listeners
+		if ($this.config.updateSessionOnUnload === true) {
+			addEventListener(targetWindow, "beforeunload", function(e) {
+				var activeElement = null;
+				if (e.target && e.target.activeElement) {
+					activeElement = {
+						type: e.target.activeElement.tagName,
+						id: e.target.activeElement.id,
+						href: e.target.activeElement.href,
+						target: e.target.activeElement.target,
+					};
 				}
+				$this.updateSession({
+					event: {
+						type: "unload",
+						activeElement: activeElement
+					}
+				});
 			});
-		});
-		if (self.config.updateSessionOnHashChange === true) {
-			addEventListener(self.config.window, "hashchange", function() {
-				self.updateSession({
+		}
+		if ($this.config.updateSessionOnHashChange === true) {
+			addEventListener(targetWindow, "hashchange", function() {
+				$this.updateSession({
 					event: {
 						type: "hashchange",
 					}
 				});
 			});
 		};
-		if (self.config.updateSessionOnResize === true) {
-			addEventListener(self.config.window, "resize", function() {
+		if ($this.config.updateSessionOnResize === true) {
+			addEventListener(targetWindow, "resize", function() {
 				if (resizeTimeoutId !== false) {
-					self.config.window.clearTimeout(resizeTimeoutId);
+					targetWindow.clearTimeout(resizeTimeoutId);
 				}
-				resizeTimeoutId = self.config.window.setTimeout(function() {
-					self.updateSession({
+				resizeTimeoutId = targetWindow.setTimeout(function() {
+					$this.updateSession({
 						event: {
 							type: "resize",
 						}
@@ -109,8 +133,8 @@ var RevsysAnalyticsClient = function(options) {
 				}, 1000);
 			});
 		};
-		if ($this.config.clickSelector && $this.config.window.document.querySelectorAll) {
-			var elements = $this.config.window.document.querySelectorAll("[" + $this.config.clickSelector + "]");
+		if ($this.config.clickSelector && targetWindow.document.querySelectorAll) {
+			var elements = targetWindow.document.querySelectorAll("[" + $this.config.clickSelector + "]");
 			for (var i = 0; i < elements.length; i++) {
 				var element = elements.item(i);
 				var eventName = element.getAttribute($this.config.clickSelector);
@@ -124,16 +148,15 @@ var RevsysAnalyticsClient = function(options) {
 				});
 			}
 		}
-		try {
+		callSafe(function(){
 			getLocalIPs(function(localIPs) {
 				staticData.ipAddress.local = localIPs;
-				getLocationInfo();
+				getServerInfo();
 			});
-		} catch (e) {
-			$this.console.error(e);
-		}
+		});
 	}
 
+	// Function to trigger sending latest analytics
 	this.updateSession = function(data, options) {
 		var request = {
 			onSuccess: function() {},
@@ -159,46 +182,34 @@ var RevsysAnalyticsClient = function(options) {
 		return requestId;
 	};
 
+	// Compile all analytics data together
 	function getAllInfo() {
 		var data = {};
-		try {
+		callSafe(function(){
 			data.device = getDeviceInfo();
-		} catch (e) {
-			$this.console.error(e);
-		}
-		try {
+		});
+		callSafe(function(){
 			data.browser = getBrowserInfo();
-		} catch (e) {
-			$this.console.error(e);
-		}
-		try {
+		});
+		callSafe(function(){
 			data.page = getPageInfo();
-		} catch (e) {
-			$this.console.error(e);
-		}
-		try {
+		});
+		callSafe(function(){
 			data.connection = getConnectionInfo();
-		} catch (e) {
-			$this.console.error(e);
-		}
-		try {
+		});
+		callSafe(function(){
 			data.locale = getLocaleInfo();
-		} catch (e) {
-			$this.console.error(e);
-		}
-		try {
+		});
+		callSafe(function(){
 			data.scripts = getScripts();
-		} catch (e) {
-			$this.console.error(e);
-		}
-		try {
+		});
+		callSafe(function(){
 			data.frames = getFrames();
-		} catch (e) {
-			$this.console.error(e);
-		}
-		if ($this.config.window.document.querySelectorAll) {
+		});
+		// Collect values from dom elements marked with the configured element selector
+		if (targetWindow.document.querySelectorAll) {
 			if ($this.config.elementSelector) {
-				var elements = $this.config.window.document.querySelectorAll("[" + $this.config.elementSelector + "]");
+				var elements = targetWindow.document.querySelectorAll("[" + $this.config.elementSelector + "]");
 				for (var i = 0; i < elements.length; i++) {
 					var element = elements.item(i);
 					var propertyName = element.getAttribute($this.config.elementSelector);
@@ -218,6 +229,7 @@ var RevsysAnalyticsClient = function(options) {
 		return data;
 	}
 
+	// Get userId using localStorage
 	function getUserId() {
 		var userId = localStorage.userId;
 		if (userId == undefined) {
@@ -227,6 +239,7 @@ var RevsysAnalyticsClient = function(options) {
 		return userId;
 	}
 
+	// Get sessionId using sessionStorage
 	function getSessionId() {
 		var sessionId = sessionStorage.sessionId;
 		if (sessionId == undefined) {
@@ -236,62 +249,66 @@ var RevsysAnalyticsClient = function(options) {
 		return sessionId;
 	}
 
+	// Device information
 	function getDeviceInfo() {
 		var device = {
-			platform: $this.config.window.navigator.platform,
-			screen: flatten($this.config.window.screen),
-			pixelRatio: $this.config.window.devicePixelRatio
+			platform: targetWindow.navigator.platform,
+			screen: flatten(targetWindow.screen),
+			pixelRatio: targetWindow.devicePixelRatio
 		};
 		return device;
 	}
 
+	// Browser information
 	function getBrowserInfo() {
 		var browser = {
-			vendor: $this.config.window.navigator.vendor,
-			vendorSub: $this.config.window.navigator.vendorSub,
-			product: $this.config.window.navigator.product,
-			productSub: $this.config.window.navigator.productSub,
-			userAgent: $this.config.window.navigator.userAgent,
-			mimeTypes: $this.config.window.navigator.mimeTypes.length,
-			plugins: $this.config.window.navigator.plugins.length,
-			language: $this.config.window.navigator.language,
+			vendor: targetWindow.navigator.vendor,
+			vendorSub: targetWindow.navigator.vendorSub,
+			product: targetWindow.navigator.product,
+			productSub: targetWindow.navigator.productSub,
+			userAgent: targetWindow.navigator.userAgent,
+			mimeTypes: targetWindow.navigator.mimeTypes.length,
+			plugins: targetWindow.navigator.plugins.length,
+			language: targetWindow.navigator.language,
 			screen: {
-				outerWidth: $this.config.window.outerWidth,
-				outerHeight: $this.config.window.outerHeight,
-				innerWidth: $this.config.window.innerWidth,
-				innerHeight: $this.config.window.innerHeight,
-				viewportWidth: $this.config.window.document.documentElement.clientWidth,
-				viewportHeight: $this.config.window.document.documentElement.clientHeight
+				outerWidth: targetWindow.outerWidth,
+				outerHeight: targetWindow.outerHeight,
+				innerWidth: targetWindow.innerWidth,
+				innerHeight: targetWindow.innerHeight,
+				viewportWidth: targetWindow.document.documentElement.clientWidth,
+				viewportHeight: targetWindow.document.documentElement.clientHeight
 			}
 		}
 		return browser;
 	}
 
+	// Page information
 	function getPageInfo() {
 		var page = {
-			location: $this.config.window.location,
-			title: $this.config.window.document.title,
-			referrer: $this.config.window.document.referrer,
-			iframed: $this.config.window.top.location !== $this.config.window.location,
+			location: targetWindow.location,
+			title: targetWindow.document.title,
+			referrer: targetWindow.document.referrer,
+			iframed: targetWindow.top.location !== targetWindow.location,
 			screen: {
-				width: $this.config.window.document.documentElement.offsetWidth,
-				height: $this.config.window.document.documentElement.offsetHeight,
-				xOffset: $this.config.window.pageXOffset,
-				yOffset: $this.config.window.pageYOffset
+				width: targetWindow.document.documentElement.offsetWidth,
+				height: targetWindow.document.documentElement.offsetHeight,
+				xOffset: targetWindow.pageXOffset,
+				yOffset: targetWindow.pageYOffset
 			}
 		}
-		if ($this.config.window.performance) {
-			page.performance = $this.config.window.performance.timing;
+		if (targetWindow.performance) {
+			page.performance = targetWindow.performance.timing;
 		}
 		return page;
 	}
 
+	// Locale information
 	function getLocaleInfo() {
 		var lang = ((
-			$this.config.window.navigator.language ||
-			$this.config.window.navigator.browserLanguage ||
-			$this.config.window.navigator.systemLanguage ||
-			$this.config.window.navigator.userLanguage
+			targetWindow.navigator.language ||
+			targetWindow.navigator.browserLanguage ||
+			targetWindow.navigator.systemLanguage ||
+			targetWindow.navigator.userLanguage
 		) || '').split("-");
 		if (lang.length == 2) {
 			return {
@@ -311,9 +328,10 @@ var RevsysAnalyticsClient = function(options) {
 		}
 	}
 
+	// Get an array of scripts currently on the page
 	function getScripts() {
 		var result = [];
-		var scripts = $this.config.window.document.scripts;
+		var scripts = targetWindow.document.scripts;
 		for (var i in scripts) {
 			var script = scripts[i];
 			if (script.src) {
@@ -328,9 +346,10 @@ var RevsysAnalyticsClient = function(options) {
 		return result;
 	}
 
+	// Get an array of frames current in the page
 	function getFrames() {
 		var result = [];
-		var frames = $this.config.window.document.getElementsByTagName("iframe");
+		var frames = targetWindow.document.getElementsByTagName("iframe");
 		for (var i in frames) {
 			var frame = frames[i];
 			result.push({
@@ -342,16 +361,17 @@ var RevsysAnalyticsClient = function(options) {
 		return result;
 	}
 
+	// Retrieve local IP using webRTC
 	function getLocalIPs(callback) {
 		var localIPs = [];
-		var RTCPeerConnection = /*window.RTCPeerConnection ||*/ $this.config.window.webkitRTCPeerConnection || $this.config.window.mozRTCPeerConnection;
+		var RTCPeerConnection = /*window.RTCPeerConnection ||*/ targetWindow.webkitRTCPeerConnection || targetWindow.mozRTCPeerConnection;
 
 		if (RTCPeerConnection) {
 			(function() {
 				var rtc = new RTCPeerConnection({
 					iceServers: []
 				});
-				if (1 || $this.config.window.mozRTCPeerConnection) { // FF [and now Chrome!] needs a channel/stream to proceed
+				if (1 || targetWindow.mozRTCPeerConnection) { // FF [and now Chrome!] needs a channel/stream to proceed
 					rtc.createDataChannel('', {
 						reliable: false
 					});
@@ -406,12 +426,13 @@ var RevsysAnalyticsClient = function(options) {
 		}
 	}
 
-	function getLocationInfo() {
+	// Send a request to google appengine requestmirrot to retrieve additional details
+	function getServerInfo() {
 		var el = document.createElement('script');
 		el.async = true;
 		document.getElementsByTagName('script')[0].appendChild(el);
 		setTimeout(function() { // set source after insertion - needed for older versions of IE
-			var src = "https://requestmirror.appspot.com/?callback=window." + id + ".processLocationInfo";
+			var src = "https://requestmirror.appspot.com/?callback=window." + id + ".processServerInfo";
 			if ($this.config.includeNetworkData == true) {
 				src = src + "&includeNetwork=true";
 			}
@@ -419,7 +440,8 @@ var RevsysAnalyticsClient = function(options) {
 		}, 0);
 	}
 
-	this.processLocationInfo = function(data) {
+	// Process response from google appengine request mirror
+	this.processServerInfo = function(data) {
 		this.config.staticData.location = {
 			language: data.headers['Accept-Language'],
 			city: data.headers['X-AppEngine-City'],
@@ -431,16 +453,16 @@ var RevsysAnalyticsClient = function(options) {
 			this.config.staticData.network = data.network;
 		}
 		this.config.staticData.headers = {};
-		for(var i in this.config.includeHeaders){
+		for (var i in this.config.includeHeaders) {
 			var header = this.config.includeHeaders[i];
-			if(data.headers[header]){
+			if (data.headers[header]) {
 				this.config.staticData.headers[header] = data.headers[header];
 			}
 		}
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
 		this.config.staticData.ipAddress.remote = data.ipAddress;
-		var initData = copy(this.config.data);
+		var initData = copy(this.config.initialData);
 		initData.event = {
 			"type": "load"
 		};
@@ -449,18 +471,30 @@ var RevsysAnalyticsClient = function(options) {
 		});
 	}
 
+	// Connection details
 	function getConnectionInfo() {
-		var navConnection = $this.config.window.navigator.connection || $this.config.window.navigator.mozConnection || $this.config.window.navigator.webkitConnection || {
+		var navConnection = targetWindow.navigator.connection || targetWindow.navigator.mozConnection || targetWindow.navigator.webkitConnection || {
 			bandwidth: "not supported",
 			metered: "not supported"
 		};
 		return flatten(navConnection);
 	}
 
+	// Utility function to safely invoke a function, logging any error throw
+	function callSafe(f){
+		try{
+			f();
+		}catch(e){
+			$this.console.error(e);
+		}
+	}
+
+	// Utility function to copy an object
 	function copy(obj) {
 		return flatten(obj);
 	}
 
+	// Utility function to flatten an object - therefore putting prototype properties on the object itself
 	function flatten(obj) {
 		var result = {};
 		for (var key in obj) {
@@ -470,6 +504,7 @@ var RevsysAnalyticsClient = function(options) {
 		return result;
 	}
 
+	// Utility function to merge two objects
 	function merge(obj1, obj2) {
 		if (obj2 != null) {
 			for (var key in obj2) {
@@ -479,6 +514,7 @@ var RevsysAnalyticsClient = function(options) {
 		return obj1;
 	}
 
+	// Utility function to generate a UUID
 	function generateUUID() {
 		var d = new Date().getTime();
 		var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -489,6 +525,7 @@ var RevsysAnalyticsClient = function(options) {
 		return uuid;
 	};
 
+	// Utility function to polyfill addEventListener
 	function addEventListener(object, event, listener) {
 		if (object.addEventListener) {
 			object.addEventListener(event, listener);
@@ -497,11 +534,11 @@ var RevsysAnalyticsClient = function(options) {
 		}
 	}
 
-	var $this = this;
-	if (!this.config.window.performance || !this.config.window.performance.timing || this.config.window.performance.timing.loadEventStart > 0) {
-		init($this);
+	// Initialise the client if the page has loaded, or wait until it has finished loading
+	if (!targetWindow.performance || !targetWindow.performance.timing || targetWindow.performance.timing.loadEventStart > 0) {
+		init();
 	} else {
-		addEventListener(this.config.window, "load", function() {
+		addEventListener(targetWindow, "load", function() {
 			setTimeout(function() {
 				init($this);
 			}, 0);
