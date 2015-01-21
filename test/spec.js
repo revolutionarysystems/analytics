@@ -11,8 +11,23 @@ describe("AnalyticsClient", function() {
 						expect(data.location.city).not.toBeUndefined();
 						expect(data.location.coords).not.toBeUndefined();
 						expect(data.event.type).toBe("load");
+						expect(data.network).toBeUndefined();
 						expect(data.ipAddress.remote).not.toBeUndefined();
 						expect(data.ipAddress.local.length).toBeGreaterThan(0);
+						done();
+					};
+				}
+			});
+		});
+		it("should send network data if requested", function(done) {
+			var analyticsClient = new RevsysAnalyticsClient({
+				includeNetworkData: true,
+				submissionHandler: new function() {
+					this.submit = function(request) {
+						var data = request.data;
+						console.log(data);
+						expect(data.network.name).not.toBeUndefined();
+						expect(data.network.description).not.toBeUndefined();
 						done();
 					};
 				}

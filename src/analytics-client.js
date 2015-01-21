@@ -27,6 +27,7 @@ var RevsysAnalyticsClient = function(options) {
 		data: {},
 		elementSelector: "data-analytics",
 		clickSelector: "data-analytics-click",
+		includeNetworkData: false,
 		window: window,
 		submissionHandler: new function() {
 			this.submit = function(request) {
@@ -405,7 +406,11 @@ var RevsysAnalyticsClient = function(options) {
 		el.async = true;
 		document.getElementsByTagName('script')[0].appendChild(el);
 		setTimeout(function() { // set source after insertion - needed for older versions of IE
-			el.src = "https://requestmirror.appspot.com/?callback=window." + id + ".processLocationInfo";
+			var src = "https://requestmirror.appspot.com/?callback=window." + id + ".processLocationInfo";
+			if($this.config.includeNetworkData == true){
+				src = src + "&includeNetwork=true";
+			}
+			el.src = src;
 		}, 0);
 	}
 
@@ -416,6 +421,9 @@ var RevsysAnalyticsClient = function(options) {
 			country: data.headers['X-AppEngine-Country'],
 			region: data.headers['X-AppEngine-Region'],
 			coords: data.headers['X-AppEngine-CityLatLong'],
+		}
+		if(data.network){
+			this.config.staticData.network = data.network;
 		}
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
