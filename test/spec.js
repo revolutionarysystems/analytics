@@ -6,7 +6,6 @@ describe("AnalyticsClient", function() {
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;
-						console.log(data);
 						expect(data.page.title).toBe("Jasmine Spec Runner");
 						expect(data.page.performance.fetchStart).toBeGreaterThan(0);
 						expect(data.location.city).not.toBeUndefined();
@@ -27,7 +26,6 @@ describe("AnalyticsClient", function() {
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;
-						console.log(data);
 						expect(data.network.name).not.toBeUndefined();
 						expect(data.network.description).not.toBeUndefined();
 						done();
@@ -42,7 +40,6 @@ describe("AnalyticsClient", function() {
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;
-						console.log(data);
 						expect(data.headers['User-Agent']).not.toBeUndefined();
 						done();
 					};
@@ -92,6 +89,26 @@ describe("AnalyticsClient", function() {
 						}else{
 							init = true;
 							document.getElementById("testButton1").click();
+						}
+					};
+				}
+			});
+		});
+		it("should update session on form submission", function(done) {
+			var init = false;
+			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
+				formSelector: "data-analytics-form-test",
+				submissionHandler: new function() {
+					this.submit = function(request) {
+						if (init) {
+							expect(request.data.event.type).toBe("form");
+							expect(request.data.event.target).toBe("testForm1");
+							expect(request.data.event.data.formInput1).toBe("This is formInput1");
+							done();
+						}else{
+							init = true;
+							document.getElementById("testFormButton1").click();
 						}
 					};
 				}

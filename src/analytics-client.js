@@ -27,8 +27,7 @@ var RevsysAnalyticsClient = function(options) {
 	var $this = this;
 
 	// Store reference to self in window object for jsonp callbacks
-	// TODO - make id random to allow multiple clients
-	var id = "RevsysAnalyticsClientInstance";
+	var id = "RevsysAnalyticsClientInstance" + Math.floor(Math.random()*999999);
 	window[id] = this;
 
 	// Store time offset between server and client
@@ -161,6 +160,22 @@ var RevsysAnalyticsClient = function(options) {
 				});
 			});
 		};
+		if($this.config.formSelector && targetWindow.document.querySelectorAll){
+			var forms = targetWindow.document.querySelectorAll("form[" + $this.config.formSelector + "]");
+			forEach(forms, function(form){
+				var formName = form.getAttribute($this.config.formSelector);
+				addEventListener(form, "submit", function(e){
+					var formData = form2js(form, ".", false);
+					$this.updateSession({
+						event: {
+							type: "form",
+							target: formName,
+							data: formData
+						}
+					});
+				})
+			});
+		}
 		if (newSession) {
 			callSafe(function() {
 				getLocalIPs(function(localIPs) {
@@ -598,3 +613,4 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 }
+

@@ -17,6 +17,11 @@
 		<input type="hidden" data-analytics-test="hiddenInput1" value="This is hiddenInput1"></input>
 		<textarea data-analytics-test="textarea1">This is textarea1</textarea>
 		<button id="testButton1" data-analytics-click-test="testButton1">Test Button</button>
+		<form id="testForm1" data-analytics-form-test="testForm1" target="testFrame1" action="about:blank">
+			<input type="text" name="formInput1" value="This is formInput1"/>
+			<input type="submit" id="testFormButton1"/>
+		</form>
+		<iframe name="testFrame1"/>
 	</div>
 </body>
 </html>
