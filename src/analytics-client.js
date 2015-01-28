@@ -44,6 +44,7 @@ var RevsysAnalyticsClient = function(options) {
 		staticData: {},
 		initialData: {},
 		elementSelector: "data-analytics",
+		formSelector: "data-analytics-form",
 		clickSelector: "data-analytics-click",
 		includeNetworkData: false,
 		includeHeaders: [
@@ -93,7 +94,7 @@ var RevsysAnalyticsClient = function(options) {
 		// Setup session
 		var newSession = true;
 		var sessionData = getSessionData();
-		if(sessionData){
+		if (sessionData) {
 			newSession = false;
 			serverTime = sessionData.serverTime;
 			serverTimeOffset = sessionData.serverTimeOffset;
@@ -148,8 +149,7 @@ var RevsysAnalyticsClient = function(options) {
 		};
 		if ($this.config.clickSelector && targetWindow.document.querySelectorAll) {
 			var elements = targetWindow.document.querySelectorAll("[" + $this.config.clickSelector + "]");
-			for (var i = 0; i < elements.length; i++) {
-				var element = elements.item(i);
+			forEach(elements, function(element) {
 				var eventName = element.getAttribute($this.config.clickSelector);
 				addEventListener(element, "click", function(e) {
 					$this.updateSession({
@@ -159,22 +159,22 @@ var RevsysAnalyticsClient = function(options) {
 						}
 					});
 				});
-			}
-		}
-		if(newSession){
-			callSafe(function(){
+			});
+		};
+		if (newSession) {
+			callSafe(function() {
 				getLocalIPs(function(localIPs) {
 					staticData.ipAddress.local = localIPs;
 					getServerInfo();
 				});
 			});
-		}else{
+		} else {
 			initSession();
 		}
 	}
 
 	// Send first analytics
-	function initSession(){
+	function initSession() {
 		persistSessionData({
 			serverTime: serverTime,
 			serverTimeOffset: serverTimeOffset,
@@ -219,33 +219,32 @@ var RevsysAnalyticsClient = function(options) {
 	// Compile all analytics data together
 	function getAllInfo() {
 		var data = {};
-		callSafe(function(){
+		callSafe(function() {
 			data.device = getDeviceInfo();
 		});
-		callSafe(function(){
+		callSafe(function() {
 			data.browser = getBrowserInfo();
 		});
-		callSafe(function(){
+		callSafe(function() {
 			data.page = getPageInfo();
 		});
-		callSafe(function(){
+		callSafe(function() {
 			data.connection = getConnectionInfo();
 		});
-		callSafe(function(){
+		callSafe(function() {
 			data.locale = getLocaleInfo();
 		});
-		callSafe(function(){
+		callSafe(function() {
 			data.scripts = getScripts();
 		});
-		callSafe(function(){
+		callSafe(function() {
 			data.frames = getFrames();
 		});
 		// Collect values from dom elements marked with the configured element selector
 		if (targetWindow.document.querySelectorAll) {
 			if ($this.config.elementSelector) {
 				var elements = targetWindow.document.querySelectorAll("[" + $this.config.elementSelector + "]");
-				for (var i = 0; i < elements.length; i++) {
-					var element = elements.item(i);
+				forEach(elements, function(element) {
 					var propertyName = element.getAttribute($this.config.elementSelector);
 					var propertyValue = null;
 					if (element.tagName == "INPUT") {
@@ -257,7 +256,7 @@ var RevsysAnalyticsClient = function(options) {
 						}
 					}
 					data[propertyName] = propertyValue;
-				}
+				});
 			}
 		}
 		return data;
@@ -284,21 +283,21 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 	// Get session data from sessionStorage
-	function getSessionData(){
-		if($this.config.persistSessionState != true){
+	function getSessionData() {
+		if ($this.config.persistSessionState != true) {
 			return null;
 		}
 		var sessionData = sessionStorage.sessionData;
-		if(sessionData == undefined){
+		if (sessionData == undefined) {
 			return null;
-		}else{
+		} else {
 			return JSON.parse(sessionData);
 		}
 	}
 
 	// Persist session data
-	function persistSessionData(data){
-		if($this.config.persistSessionState == true){
+	function persistSessionData(data) {
+		if ($this.config.persistSessionState == true) {
 			sessionStorage.sessionData = JSON.stringify(data);
 		}
 	}
@@ -386,8 +385,7 @@ var RevsysAnalyticsClient = function(options) {
 	function getScripts() {
 		var result = [];
 		var scripts = targetWindow.document.scripts;
-		for (var i in scripts) {
-			var script = scripts[i];
+		forEach(scripts, function(script) {
 			if (script.src) {
 				result.push({
 					type: script.type,
@@ -396,7 +394,7 @@ var RevsysAnalyticsClient = function(options) {
 					defer: script.defer
 				});
 			}
-		}
+		});
 		return result;
 	}
 
@@ -404,14 +402,13 @@ var RevsysAnalyticsClient = function(options) {
 	function getFrames() {
 		var result = [];
 		var frames = targetWindow.document.getElementsByTagName("iframe");
-		for (var i in frames) {
-			var frame = frames[i];
+		forEach(frames, function(frame) {
 			result.push({
 				src: frame.src,
 				name: frame.name,
 				id: frame.id
 			});
-		}
+		});
 		return result;
 	}
 
@@ -507,12 +504,11 @@ var RevsysAnalyticsClient = function(options) {
 			staticData.network = data.network;
 		}
 		staticData.headers = {};
-		for (var i in this.config.includeHeaders) {
-			var header = this.config.includeHeaders[i];
+		forEach(this.config.includeHeaders, function(header) {
 			if (data.headers[header]) {
 				staticData.headers[header] = data.headers[header];
 			}
-		}
+		});
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
 		staticData.ipAddress.remote = data.ipAddress;
@@ -529,10 +525,10 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 	// Utility function to safely invoke a function, logging any error throw
-	function callSafe(f){
-		try{
+	function callSafe(f) {
+		try {
 			f();
-		}catch(e){
+		} catch (e) {
 			$this.console.error(e);
 		}
 	}
@@ -579,6 +575,14 @@ var RevsysAnalyticsClient = function(options) {
 			object.addEventListener(event, listener);
 		} else if (object.attachEvent) {
 			object.attachEvent(event, listener);
+		}
+	}
+
+	// Utility function to loop through arrays
+	function forEach(items, fn) {
+		for (var i=0; i<items.length; i++) {
+			var item = items[i];
+			fn(item, i);
 		}
 	}
 
