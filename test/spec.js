@@ -6,6 +6,8 @@ describe("AnalyticsClient", function() {
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;
+                        expect(data.fingerprint).not.toBeUndefined();
+                        expect(data.media.type).toBe("screen");
 						expect(data.page.title).toBe("Jasmine Spec Runner");
 						expect(data.page.performance.fetchStart).toBeGreaterThan(0);
 						expect(data.location.city).not.toBeUndefined();

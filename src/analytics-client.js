@@ -27,7 +27,7 @@ var RevsysAnalyticsClient = function(options) {
 	var $this = this;
 
 	// Store reference to self in window object for jsonp callbacks
-	var id = "RevsysAnalyticsClientInstance" + Math.floor(Math.random()*999999);
+	var id = "RevsysAnalyticsClientInstance" + Math.floor(Math.random() * 999999);
 	window[id] = this;
 
 	// Store time offset between server and client
@@ -160,11 +160,11 @@ var RevsysAnalyticsClient = function(options) {
 				});
 			});
 		};
-		if($this.config.formSelector && targetWindow.document.querySelectorAll){
+		if ($this.config.formSelector && targetWindow.document.querySelectorAll) {
 			var forms = targetWindow.document.querySelectorAll("form[" + $this.config.formSelector + "]");
-			forEach(forms, function(form){
+			forEach(forms, function(form) {
 				var formName = form.getAttribute($this.config.formSelector);
-				addEventListener(form, "submit", function(e){
+				addEventListener(form, "submit", function(e) {
 					var formData = form2js(form, ".", false);
 					$this.updateSession({
 						event: {
@@ -177,6 +177,7 @@ var RevsysAnalyticsClient = function(options) {
 			});
 		}
 		if (newSession) {
+			staticData.fingerprint = new Fingerprint().get();
 			callSafe(function() {
 				getLocalIPs(function(localIPs) {
 					staticData.ipAddress.local = localIPs;
@@ -250,6 +251,9 @@ var RevsysAnalyticsClient = function(options) {
 			data.locale = getLocaleInfo();
 		});
 		callSafe(function() {
+			data.media = getMediaInfo();
+		})
+		callSafe(function() {
 			data.scripts = getScripts();
 		});
 		callSafe(function() {
@@ -279,20 +283,30 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Get userId using localStorage
 	function getUserId() {
-		var userId = localStorage.userId;
+		var userId;
+		if (localStorage) {
+			userId = localStorage.userId;
+		}
 		if (userId == undefined) {
 			userId = generateUUID();
-			localStorage.userId = userId;
+			if (localStorage) {
+				localStorage.userId = userId;
+			}
 		}
 		return userId;
 	}
 
 	// Get sessionId using sessionStorage
 	function getSessionId() {
-		var sessionId = sessionStorage.sessionId;
+		var sessionId;
+		if (sessionStorage) {
+			sessionId = sessionStorage.sessionId;
+		}
 		if (sessionId == undefined) {
 			sessionId = generateUUID();
-			sessionStorage.sessionId = sessionId;
+			if (sessionStorage) {
+				sessionStorage.sessionId = sessionId;
+			}
 		}
 		return sessionId;
 	}
@@ -396,6 +410,23 @@ var RevsysAnalyticsClient = function(options) {
 		}
 	}
 
+	// Media information
+	function getMediaInfo(){
+		var mediaTypes = ["aural", "screen", "print", "braille", "handheld", "projection", "tv", "tty", "embossed"];
+		for (var i = 0; i < mediaTypes.length; i++) {
+			var mediaType = mediaTypes[i];
+			if (matchMedia(mediaType)) {
+				return {
+					type: mediaType
+				};
+			}
+		}
+	}
+
+	function matchMedia(expr) {
+		return targetWindow.matchMedia(expr).matches;
+	}
+
 	// Get an array of scripts currently on the page
 	function getScripts() {
 		var result = [];
@@ -449,7 +480,9 @@ var RevsysAnalyticsClient = function(options) {
 					} else {
 						// convert the candidate to SDP so we can run it through our general parser
 						// see https://twitter.com/lancestout/status/525796175425720320 for details
-						if (evt.candidate) grepSDP("a=" + evt.candidate.candidate);
+						if (evt.candidate) {
+							grepSDP("a=" + evt.candidate.candidate);
+						}
 					}
 				};
 				rtc.createOffer(function(offerDesc) {
@@ -595,7 +628,7 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Utility function to loop through arrays
 	function forEach(items, fn) {
-		for (var i=0; i<items.length; i++) {
+		for (var i = 0; i < items.length; i++) {
 			var item = items[i];
 			fn(item, i);
 		}
@@ -613,4 +646,3 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 }
-
