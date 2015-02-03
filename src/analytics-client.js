@@ -36,10 +36,12 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Default config
 	this.config = {
+		cacheServer: null,
 		persistSessionState: true,
 		updateSessionOnHashChange: true,
 		updateSessionOnUnload: true,
 		updateSessionOnResize: true,
+		includeFingerprintBreakdown: false,
 		staticData: {},
 		initialData: {},
 		elementSelector: "data-analytics",
@@ -76,8 +78,7 @@ var RevsysAnalyticsClient = function(options) {
 		this.console = targetWindow.console
 	}
 
-	// Get userId and sessionId
-	this.userId = getUserId();
+	// Get sessionId
 	this.sessionId = getSessionId();
 
 	// Timeout id to allow buffering of resize request
@@ -100,93 +101,106 @@ var RevsysAnalyticsClient = function(options) {
 			staticData = sessionData.data;
 		}
 		// Setup static data
-		staticData.userId = $this.userId;
-		staticData.sessionId = $this.sessionId;
-		staticData.domain = targetWindow.location.hostname;
-		// Add event listeners
-		if ($this.config.updateSessionOnUnload === true) {
-			addEventListener(targetWindow, "beforeunload", function(e) {
-				var activeElement = null;
-				if (e.target && e.target.activeElement) {
-					activeElement = {
-						type: e.target.activeElement.tagName,
-						id: e.target.activeElement.id,
-						href: e.target.activeElement.href,
-						target: e.target.activeElement.target,
-					};
-				}
-				$this.updateSession({
-					event: {
-						type: "unload",
-						activeElement: activeElement
+		getUserId(function(userId) {
+			$this.userId = userId;
+			staticData.userId = userId;
+			staticData.sessionId = $this.sessionId;
+			staticData.domain = targetWindow.location.hostname;
+			// Add event listeners
+			if ($this.config.updateSessionOnUnload === true) {
+				addEventListener(targetWindow, "beforeunload", function(e) {
+					var activeElement = null;
+					if (e.target && e.target.activeElement) {
+						activeElement = {
+							type: e.target.activeElement.tagName,
+							id: e.target.activeElement.id,
+							href: e.target.activeElement.href,
+							target: e.target.activeElement.target,
+						};
 					}
+					$this.updateSession({
+						event: {
+							type: "unload",
+							activeElement: activeElement
+						}
+					});
 				});
-			});
-		}
-		if ($this.config.updateSessionOnHashChange === true) {
-			addEventListener(targetWindow, "hashchange", function() {
-				$this.updateSession({
-					event: {
-						type: "hashchange",
+			}
+			if ($this.config.updateSessionOnHashChange === true) {
+				addEventListener(targetWindow, "hashchange", function() {
+					$this.updateSession({
+						event: {
+							type: "hashchange",
+						}
+					});
+				});
+			};
+			if ($this.config.updateSessionOnResize === true) {
+				addEventListener(targetWindow, "resize", function() {
+					if (resizeTimeoutId !== false) {
+						targetWindow.clearTimeout(resizeTimeoutId);
 					}
+					resizeTimeoutId = targetWindow.setTimeout(function() {
+						$this.updateSession({
+							event: {
+								type: "resize",
+							}
+						});
+					}, 1000);
 				});
-			});
-		};
-		if ($this.config.updateSessionOnResize === true) {
-			addEventListener(targetWindow, "resize", function() {
-				if (resizeTimeoutId !== false) {
-					targetWindow.clearTimeout(resizeTimeoutId);
+			};
+			if ($this.config.clickSelector && targetWindow.document.querySelectorAll) {
+				var elements = targetWindow.document.querySelectorAll("[" + $this.config.clickSelector + "]");
+				forEach(elements, function(element) {
+					var eventName = element.getAttribute($this.config.clickSelector);
+					addEventListener(element, "click", function(e) {
+						$this.updateSession({
+							event: {
+								type: "click",
+								target: eventName
+							}
+						});
+					});
+				});
+			};
+			if ($this.config.formSelector && targetWindow.document.querySelectorAll) {
+				var forms = targetWindow.document.querySelectorAll("form[" + $this.config.formSelector + "]");
+				forEach(forms, function(form) {
+					var formName = form.getAttribute($this.config.formSelector);
+					addEventListener(form, "submit", function(e) {
+						var formData = form2js(form, ".", false);
+						$this.updateSession({
+							event: {
+								type: "form",
+								target: formName,
+								data: formData
+							}
+						});
+					})
+				});
+			}
+			if (newSession) {
+				var fingerprint = new Fingerprint({
+					breakdown: $this.config.includeFingerprintBreakdown,
+					canvas: true,
+					webgl: true
+				}).get();
+				if ($this.config.includeFingerprintBreakdown == true) {
+					staticData.fingerprint = fingerprint.value;
+					staticData.fingerprintBreakdown = fingerprint.breakdown;
+				} else {
+					staticData.fingerprint = fingerprint;
 				}
-				resizeTimeoutId = targetWindow.setTimeout(function() {
-					$this.updateSession({
-						event: {
-							type: "resize",
-						}
-					});
-				}, 1000);
-			});
-		};
-		if ($this.config.clickSelector && targetWindow.document.querySelectorAll) {
-			var elements = targetWindow.document.querySelectorAll("[" + $this.config.clickSelector + "]");
-			forEach(elements, function(element) {
-				var eventName = element.getAttribute($this.config.clickSelector);
-				addEventListener(element, "click", function(e) {
-					$this.updateSession({
-						event: {
-							type: "click",
-							target: eventName
-						}
+				callSafe(function() {
+					getLocalIPs(function(localIPs) {
+						staticData.ipAddress.local = localIPs;
+						getServerInfo();
 					});
 				});
-			});
-		};
-		if ($this.config.formSelector && targetWindow.document.querySelectorAll) {
-			var forms = targetWindow.document.querySelectorAll("form[" + $this.config.formSelector + "]");
-			forEach(forms, function(form) {
-				var formName = form.getAttribute($this.config.formSelector);
-				addEventListener(form, "submit", function(e) {
-					var formData = form2js(form, ".", false);
-					$this.updateSession({
-						event: {
-							type: "form",
-							target: formName,
-							data: formData
-						}
-					});
-				})
-			});
-		}
-		if (newSession) {
-			staticData.fingerprint = new Fingerprint().get();
-			callSafe(function() {
-				getLocalIPs(function(localIPs) {
-					staticData.ipAddress.local = localIPs;
-					getServerInfo();
-				});
-			});
-		} else {
-			initSession();
-		}
+			} else {
+				initSession();
+			}
+		});
 	}
 
 	// Send first analytics
@@ -281,19 +295,39 @@ var RevsysAnalyticsClient = function(options) {
 		return data;
 	}
 
-	// Get userId using localStorage
-	function getUserId() {
+	// Get userId using appCache or localStorage
+	function getUserId(fn) {
 		var userId;
 		if (localStorage) {
 			userId = localStorage.userId;
 		}
+		var callback = function(userId) {
+			if (localStorage) {
+				//localStorage.userId = userId;
+			}
+			fn(userId);
+		}
 		if (userId == undefined) {
 			userId = generateUUID();
-			if (localStorage) {
-				localStorage.userId = userId;
+			if ($this.config.cacheServer) {
+				Ajax.get($this.config.cacheServer, {
+					headers: {
+						"X-Cache-Data": userId
+					},
+					onSuccess: function(data) {
+						userId = data;
+						callback(userId);
+					},
+					onError: function(err) {
+						callback(userId);
+					}
+				});
+			} else {
+				callback(userId);
 			}
+		} else {
+			callback(userId);
 		}
-		return userId;
 	}
 
 	// Get sessionId using sessionStorage
@@ -411,7 +445,7 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 	// Media information
-	function getMediaInfo(){
+	function getMediaInfo() {
 		var mediaTypes = ["aural", "screen", "print", "braille", "handheld", "projection", "tv", "tty", "embossed"];
 		for (var i = 0; i < mediaTypes.length; i++) {
 			var mediaType = mediaTypes[i];
@@ -632,6 +666,19 @@ var RevsysAnalyticsClient = function(options) {
 			var item = items[i];
 			fn(item, i);
 		}
+	}
+
+	// Utility method to see if browser supports CORS
+	function supportsCors() {
+		var xhr = new XMLHttpRequest();
+		if ("withCredentials" in xhr) {
+			// Supports CORS
+			return true;
+		} else if (typeof XDomainRequest != "undefined") {
+			// IE
+			return true;
+		}
+		return false;
 	}
 
 	// Initialise the client if the page has loaded, or wait until it has finished loading

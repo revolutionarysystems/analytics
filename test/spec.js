@@ -6,7 +6,9 @@ describe("AnalyticsClient", function() {
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;
+						console.log(data);
                         expect(data.fingerprint).not.toBeUndefined();
+                        expect(data.fingerprintBreakdown).toBeUndefined();
                         expect(data.media.type).toBe("screen");
 						expect(data.page.title).toBe("Jasmine Spec Runner");
 						expect(data.page.performance.fetchStart).toBeGreaterThan(0);
@@ -43,6 +45,20 @@ describe("AnalyticsClient", function() {
 					this.submit = function(request) {
 						var data = request.data;
 						expect(data.headers['User-Agent']).not.toBeUndefined();
+						done();
+					};
+				}
+			});
+		});
+		it("should send fingerprint breakdown if requested", function(done) {
+			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
+				includeFingerprintBreakdown: true,
+				submissionHandler: new function() {
+					this.submit = function(request) {
+						var data = request.data;
+						expect(data.fingerprint).not.toBeUndefined();
+						expect(data.fingerprintBreakdown).not.toBeUndefined();
 						done();
 					};
 				}
