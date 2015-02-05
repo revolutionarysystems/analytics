@@ -288,6 +288,18 @@ var RevsysAnalyticsClient = function(options) {
 							propertyValue = element.innerHTML;
 						}
 					}
+					if(propertyName.indexOf("|") > -1){
+						var regex = propertyName.substring(propertyName.indexOf("|")+1);
+						propertyName = propertyName.substring(0, propertyName.indexOf("|"));
+						var matches = propertyValue.match(regex);
+						if(matches.length > 1){
+							propertyValue = matches[1];
+						}else if(matches.length == 1){
+							propertyValue = matches[0];
+						}else{
+							propertyValue = "";
+						}
+					}
 					data[propertyName] = propertyValue;
 				});
 			}

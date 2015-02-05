@@ -86,6 +86,7 @@ describe("AnalyticsClient", function() {
 						expect(request.data.div1).toBe("This is div1");
 						expect(request.data.div2).toBe(null);
 						expect(request.data.textInput1).toBe("This is textInput1");
+						expect(request.data.emailProvider).toBe("testprovider.com");
 						expect(request.data.hiddenInput1).toBe("This is hiddenInput1");
 						expect(request.data.textarea1).toBe("This is textarea1");
 						done();
