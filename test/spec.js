@@ -83,12 +83,26 @@ describe("AnalyticsClient", function() {
 				elementSelector: "data-analytics-test",
 				submissionHandler: new function() {
 					this.submit = function(request) {
-						expect(request.data.div1).toBe("This is div1");
-						expect(request.data.div2).toBe(null);
-						expect(request.data.textInput1).toBe("This is textInput1");
-						expect(request.data.emailProvider).toBe("testprovider.com");
-						expect(request.data.hiddenInput1).toBe("This is hiddenInput1");
-						expect(request.data.textarea1).toBe("This is textarea1");
+						expect(request.data.customData.div1).toBe("This is div1");
+						expect(request.data.customData.div2).toBe(null);
+						expect(request.data.customData.textInput1).toBe("This is textInput1");
+						expect(request.data.customData.emailProvider).toBe("testprovider.com");
+						expect(request.data.customData.hiddenInput1).toBe("This is hiddenInput1");
+						expect(request.data.customData.textarea1).toBe("This is textarea1");
+						done();
+					};
+				}
+			});
+		});
+		it("should send encrypted data from indicated elements", function(done) {
+			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
+				encryptedElementSelector: "data-analytics-encrypt-test",
+				encryptionKey: "-----BEGIN PUBLIC KEY-----MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDlOJu6TyygqxfWT7eLtGDwajtNFOb9I5XRb6khyfD1Yt3YiCgQWMNW649887VGJiGr/L5i2osbl8C9+WJTeucF+S76xFxdU6jE0NQ+Z+zEdhUTooNRaY5nZiu5PgDB0ED/ZKBUSLKL7eibMxZtMlUDHjm4gwQco1KRMDSmXSMkDwIDAQAB-----END PUBLIC KEY-----",
+				encryptionOptions: {repeatable: true},
+				submissionHandler: new function() {
+					this.submit = function(request) {
+						expect(request.data.customData.encryptedInput1).toBe("beRvIPHwBMsDF4ZNw7ndpY2YcMztrxtcKAxLHGTT6M8F7LZrwakSiJjSHRsKwbDP+qsIZGkwNELCCkzWBPhZ/BdeO4rVJ4cBECQKDapz9VKKkWWap2etU8un+ldaZSh5F5mToLXGo7ddWEDsjJwNqFt/cZRr6O2zDbLWNaNuA3c=");
 						done();
 					};
 				}
@@ -123,7 +137,7 @@ describe("AnalyticsClient", function() {
 						if (init) {
 							expect(request.data.event.type).toBe("form");
 							expect(request.data.event.target).toBe("testForm1");
-							expect(request.data.event.data.formInput1).toBe("This is formInput1");
+							expect(request.data.customData.formInput1).toBe("This is formInput1");
 							done();
 						}else{
 							init = true;
@@ -140,12 +154,13 @@ describe("AnalyticsClient", function() {
 					this.submit = function(request) {
 						var data = request.data;
 						expect(data.page.title).toBe("Jasmine Spec Runner");
-						expect(data.p1).toBe("v1");
-						expect(data.p2).toBe("v2");
+						expect(data.event.type).toBe("test");
+						expect(data.customData.p1).toBe("v1");
+						expect(data.customData.p2).toBe("v2");
 					};
 				}
 			});
-			analyticsClient.updateSession({
+			analyticsClient.updateSession("test", {
 				p1: "v1",
 				p2: "v2"
 			});
@@ -153,13 +168,14 @@ describe("AnalyticsClient", function() {
 				this.submit = function(request) {
 					var data = request.data;
 					expect(data.page.title).toBe("Jasmine Spec Runner");
-					expect(data.p1).toBe("v1");
-					expect(data.p2).toBeUndefined();
-					expect(data.p3).toBe("v3");
+					expect(data.event.type).toBe("test");
+					expect(data.customData.p1).toBe("v1");
+					expect(data.customData.p2).toBeUndefined();
+					expect(data.customData.p3).toBe("v3");
 					done();
 				};
 			};
-			analyticsClient.updateSession({
+			analyticsClient.updateSession("test", {
 				p1: "v1",
 				p3: "v3"
 			});

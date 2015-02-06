@@ -24,6 +24,9 @@
 		"name": "fingerprintjs",
 		"version": "0.6.0-SNAPSHOT"
 	}, {
+		"name": "revsys-jsencrypt",
+		"version": "0.1.0-SNAPSHOT"
+	}, {
 		"name": "jasmine",
 		"version": "2.0.0",
 		"scope": "test"

@@ -46,6 +46,9 @@ var RevsysAnalyticsClient = function(options) {
 		initialData: {},
 		elementSelector: "data-analytics",
 		formSelector: "data-analytics-form",
+		encryptedElementSelector: "data-analytics-encrypt",
+		encryptionKey: null,
+		encryptionOptions: {},
 		clickSelector: "data-analytics-click",
 		includeNetworkData: false,
 		includeHeaders: [
@@ -89,6 +92,8 @@ var RevsysAnalyticsClient = function(options) {
 		ipAddress: {}
 	};
 
+	var encrypt;
+
 	// Initialise the client
 	function init() {
 		// Setup session
@@ -119,20 +124,14 @@ var RevsysAnalyticsClient = function(options) {
 						};
 					}
 					$this.updateSession({
-						event: {
-							type: "unload",
-							activeElement: activeElement
-						}
+						type: "unload",
+						activeElement: activeElement
 					});
 				});
 			}
 			if ($this.config.updateSessionOnHashChange === true) {
 				addEventListener(targetWindow, "hashchange", function() {
-					$this.updateSession({
-						event: {
-							type: "hashchange",
-						}
-					});
+					$this.updateSession("hashchange");
 				});
 			};
 			if ($this.config.updateSessionOnResize === true) {
@@ -141,11 +140,7 @@ var RevsysAnalyticsClient = function(options) {
 						targetWindow.clearTimeout(resizeTimeoutId);
 					}
 					resizeTimeoutId = targetWindow.setTimeout(function() {
-						$this.updateSession({
-							event: {
-								type: "resize",
-							}
-						});
+						$this.updateSession("resize");
 					}, 1000);
 				});
 			};
@@ -155,10 +150,8 @@ var RevsysAnalyticsClient = function(options) {
 					var eventName = element.getAttribute($this.config.clickSelector);
 					addEventListener(element, "click", function(e) {
 						$this.updateSession({
-							event: {
-								type: "click",
-								target: eventName
-							}
+							type: "click",
+							target: eventName
 						});
 					});
 				});
@@ -170,12 +163,9 @@ var RevsysAnalyticsClient = function(options) {
 					addEventListener(form, "submit", function(e) {
 						var formData = form2js(form, ".", false);
 						$this.updateSession({
-							event: {
-								type: "form",
-								target: formName,
-								data: formData
-							}
-						});
+							type: "form",
+							target: formName
+						}, formData);
 					})
 				});
 			}
@@ -211,16 +201,13 @@ var RevsysAnalyticsClient = function(options) {
 			data: staticData
 		});
 		var initData = copy($this.config.initialData);
-		initData.event = {
-			"type": "load"
-		};
-		$this.updateSession(initData, {
+		$this.updateSession("load", initData, {
 			onSuccess: $this.config.onReady
 		});
 	}
 
 	// Function to trigger sending latest analytics
-	this.updateSession = function(data, options) {
+	this.updateSession = function(event, data, options) {
 		var request = {
 			onSuccess: function() {},
 			onError: function() {}
@@ -232,11 +219,19 @@ var RevsysAnalyticsClient = function(options) {
 		request.data = merge(request.data, staticData);
 		request.data = merge(request.data, this.config.staticData);
 		request.data = merge(request.data, getAllInfo());
-		request.data = merge(request.data, data);
-		if (!request.data.event) {
+		if (typeof event == "object") {
+			request.data.event = event;
+			if (!request.data.event.type) {
+				request.data.event.type = "unknown"
+			}
+		} else if (typeof event == "string") {
 			request.data.event = {
-				type: "unknown"
-			};
+				type: event
+			}
+		}
+		request.data.customData = getCustomInfo();
+		if (data) {
+			request.data.customData = merge(request.data.customData, data);
 		}
 		var now = new Date().getTime();
 		request.data.timestamp = now - serverTimeOffset;
@@ -273,37 +268,59 @@ var RevsysAnalyticsClient = function(options) {
 		callSafe(function() {
 			data.frames = getFrames();
 		});
+		return data;
+	}
+
+	// Collect custom info from dom
+	function getCustomInfo() {
+		var data = {};
 		// Collect values from dom elements marked with the configured element selector
 		if (targetWindow.document.querySelectorAll) {
 			if ($this.config.elementSelector) {
-				var elements = targetWindow.document.querySelectorAll("[" + $this.config.elementSelector + "]");
-				forEach(elements, function(element) {
-					var propertyName = element.getAttribute($this.config.elementSelector);
-					var propertyValue = null;
-					if (element.tagName == "INPUT") {
-						propertyValue = element.value;
-					} else {
-						var childNodes = element.childNodes;
-						if (childNodes.length == 1 && childNodes[0].nodeType == 3) {
-							propertyValue = element.innerHTML;
-						}
-					}
-					if(propertyName.indexOf("|") > -1){
-						var regex = propertyName.substring(propertyName.indexOf("|")+1);
-						propertyName = propertyName.substring(0, propertyName.indexOf("|"));
-						var matches = propertyValue.match(regex);
-						if(matches.length > 1){
-							propertyValue = matches[1];
-						}else if(matches.length == 1){
-							propertyValue = matches[0];
-						}else{
-							propertyValue = "";
-						}
-					}
-					data[propertyName] = propertyValue;
-				});
+				data = extractData($this.config.elementSelector);
+			}
+			if ($this.config.encryptedElementSelector && $this.config.encryptionKey) {
+				data = merge(data, extractData($this.config.encryptedElementSelector, $this.config.encryptionKey));
 			}
 		}
+		return data;
+	}
+
+	function extractData(selector, encryptionKey) {
+		var data = {};
+		var elements = targetWindow.document.querySelectorAll("[" + selector + "]");
+		forEach(elements, function(element) {
+			var propertyName = element.getAttribute(selector);
+			var propertyValue = null;
+			if (element.tagName == "INPUT") {
+				propertyValue = element.value;
+			} else {
+				var childNodes = element.childNodes;
+				if (childNodes.length == 1 && childNodes[0].nodeType == 3) {
+					propertyValue = element.innerHTML;
+				}
+			}
+			if (propertyName.indexOf("|") > -1) {
+				var regex = propertyName.substring(propertyName.indexOf("|") + 1);
+				propertyName = propertyName.substring(0, propertyName.indexOf("|"));
+				var matches = propertyValue.match(regex);
+				if (matches.length > 1) {
+					propertyValue = matches[1];
+				} else if (matches.length == 1) {
+					propertyValue = matches[0];
+				} else {
+					propertyValue = "";
+				}
+			}
+			if (encryptionKey) {
+				if (!encrypt) {
+					encrypt = new JSEncrypt($this.config.encryptionOptions);
+					encrypt.setPublicKey(encryptionKey);
+				}
+				propertyValue = encrypt.encrypt(propertyValue);
+			}
+			data[propertyName] = propertyValue;
+		});
 		return data;
 	}
 
