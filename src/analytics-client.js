@@ -306,12 +306,12 @@ var RevsysAnalyticsClient = function(options) {
 				var regex = propertyName.substring(propertyName.indexOf("|") + 1);
 				propertyName = propertyName.substring(0, propertyName.indexOf("|"));
 				var matches = propertyValue.match(regex);
-				if (matches.length > 1) {
-					propertyValue = matches[1];
+				if (matches == null || matches.length == 0) {
+					propertyValue = null;
 				} else if (matches.length == 1) {
 					propertyValue = matches[0];
 				} else {
-					propertyValue = "";
+					propertyValue = matches[1];
 				}
 			}
 			if (encryptionKey) {
@@ -320,6 +320,9 @@ var RevsysAnalyticsClient = function(options) {
 					encrypt.setPublicKey(encryptionKey);
 				}
 				propertyValue = encrypt.encrypt(propertyValue);
+				if(propertyValue == false){
+					propertyValue = null;
+				}
 			}
 			data[propertyName] = propertyValue;
 		});

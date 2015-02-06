@@ -108,6 +108,20 @@ describe("AnalyticsClient", function() {
 				}
 			});
 		});
+		it("should not send unencrypted data if encryption key is invalid", function(done) {
+			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
+				encryptedElementSelector: "data-analytics-encrypt-test",
+				encryptionKey: "sfsdfsd",
+				encryptionOptions: {repeatable: true},
+				submissionHandler: new function() {
+					this.submit = function(request) {
+						expect(request.data.customData.encryptedInput1).toBeNull();
+						done();
+					};
+				}
+			});
+		});
 		it("should update session on indicated click events", function(done) {
 			var init = false;
 			var analyticsClient = new RevsysAnalyticsClient({
