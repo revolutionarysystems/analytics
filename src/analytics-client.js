@@ -183,6 +183,8 @@ var RevsysAnalyticsClient = function(options) {
 				}
 				callSafe(function() {
 					getLocalIPs(function(localIPs) {
+						localIPs.sort();
+						localIPs.reverse();
 						staticData.ipAddress.local = localIPs;
 						getServerInfo();
 					});
