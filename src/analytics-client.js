@@ -319,9 +319,13 @@ var RevsysAnalyticsClient = function(options) {
 					encrypt = new JSEncrypt($this.config.encryptionOptions);
 					encrypt.setPublicKey(encryptionKey);
 				}
-				propertyValue = encrypt.encrypt(propertyValue);
-				if(propertyValue == false){
-					propertyValue = null;
+				if (propertyValue != "") {
+					propertyValue = encrypt.encrypt(propertyValue);
+					if (propertyValue == false) {
+						propertyValue = null;
+					} else {
+						propertyValue = "data:encrypted:" + propertyValue;
+					}
 				}
 			}
 			data[propertyName] = propertyValue;

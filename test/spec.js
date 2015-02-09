@@ -102,7 +102,8 @@ describe("AnalyticsClient", function() {
 				encryptionOptions: {repeatable: true},
 				submissionHandler: new function() {
 					this.submit = function(request) {
-						expect(request.data.customData.encryptedInput1).toBe("beRvIPHwBMsDF4ZNw7ndpY2YcMztrxtcKAxLHGTT6M8F7LZrwakSiJjSHRsKwbDP+qsIZGkwNELCCkzWBPhZ/BdeO4rVJ4cBECQKDapz9VKKkWWap2etU8un+ldaZSh5F5mToLXGo7ddWEDsjJwNqFt/cZRr6O2zDbLWNaNuA3c=");
+						expect(request.data.customData.encryptedInput1).toBe("data:encrypted:beRvIPHwBMsDF4ZNw7ndpY2YcMztrxtcKAxLHGTT6M8F7LZrwakSiJjSHRsKwbDP+qsIZGkwNELCCkzWBPhZ/BdeO4rVJ4cBECQKDapz9VKKkWWap2etU8un+ldaZSh5F5mToLXGo7ddWEDsjJwNqFt/cZRr6O2zDbLWNaNuA3c=");
+						expect(request.data.customData.encryptedInput2).toBe("");
 						done();
 					};
 				}
