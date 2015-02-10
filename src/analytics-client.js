@@ -41,6 +41,7 @@ var RevsysAnalyticsClient = function(options) {
 		updateSessionOnHashChange: true,
 		updateSessionOnUnload: true,
 		updateSessionOnResize: true,
+		includeServerData: false,
 		includeFingerprintBreakdown: false,
 		staticData: {},
 		initialData: {},
@@ -94,10 +95,11 @@ var RevsysAnalyticsClient = function(options) {
 
 	var encrypt;
 
+	var newSession = true;
+
 	// Initialise the client
 	function init() {
 		// Setup session
-		var newSession = true;
 		var sessionData = getSessionData();
 		if (sessionData) {
 			newSession = false;
@@ -169,26 +171,8 @@ var RevsysAnalyticsClient = function(options) {
 					})
 				});
 			}
-			if (newSession) {
-				var fingerprint = new Fingerprint({
-					breakdown: $this.config.includeFingerprintBreakdown,
-					canvas: true,
-					webgl: true
-				}).get();
-				if ($this.config.includeFingerprintBreakdown == true) {
-					staticData.fingerprint = fingerprint.value;
-					staticData.fingerprintBreakdown = fingerprint.breakdown;
-				} else {
-					staticData.fingerprint = fingerprint;
-				}
-				callSafe(function() {
-					getLocalIPs(function(localIPs) {
-						localIPs.sort();
-						localIPs.reverse();
-						staticData.ipAddress.local = localIPs;
-						getServerInfo();
-					});
-				});
+			if ($this.config.includeServerData == true && newSession) {
+				getServerInfo();
 			} else {
 				initSession();
 			}
@@ -196,16 +180,42 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 	// Send first analytics
-	function initSession() {
-		persistSessionData({
-			serverTime: serverTime,
-			serverTimeOffset: serverTimeOffset,
-			data: staticData
-		});
-		var initData = copy($this.config.initialData);
-		$this.updateSession("load", initData, {
-			onSuccess: $this.config.onReady
-		});
+	function initSession(fpData) {
+		var callback = function() {
+			persistSessionData({
+				serverTime: serverTime,
+				serverTimeOffset: serverTimeOffset,
+				data: staticData
+			});
+			var initData = copy($this.config.initialData);
+			$this.updateSession("load", initData, {
+				onSuccess: $this.config.onReady
+			});
+		}
+		if (newSession) {
+			var fingerprint = new Fingerprint({
+				breakdown: $this.config.includeFingerprintBreakdown,
+				canvas: true,
+				webgl: true,
+				screen_resolution: true
+			}).get(fpData);
+			if ($this.config.includeFingerprintBreakdown == true) {
+				staticData.fingerprint = fingerprint.value;
+				staticData.fingerprintBreakdown = fingerprint.breakdown;
+			} else {
+				staticData.fingerprint = fingerprint;
+			}
+			callSafe(function() {
+				getLocalIPs(function(localIPs) {
+					localIPs.sort();
+					localIPs.reverse();
+					staticData.ipAddress.local = localIPs;
+					callback();
+				});
+			});
+		} else {
+			callback();
+		}
 	}
 
 	// Function to trigger sending latest analytics
@@ -483,16 +493,21 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 	// Media information
+	var mediaTypes = ["aural", "screen", "print", "braille", "handheld", "projection", "tv", "tty", "embossed"];
+
 	function getMediaInfo() {
-		var mediaTypes = ["aural", "screen", "print", "braille", "handheld", "projection", "tv", "tty", "embossed"];
+		var media = {};
 		for (var i = 0; i < mediaTypes.length; i++) {
 			var mediaType = mediaTypes[i];
 			if (matchMedia(mediaType)) {
-				return {
-					type: mediaType
-				};
+				media.type = mediaType;
+				break;
 			}
 		}
+		// if(MediaStreamTrack && MediaStreamTrack.getSources){
+		// 	MediaStreamTrack.getSources()
+		// }
+		return media;
 	}
 
 	function matchMedia(expr) {
@@ -624,15 +639,19 @@ var RevsysAnalyticsClient = function(options) {
 			staticData.network = data.network;
 		}
 		staticData.headers = {};
-		forEach(this.config.includeHeaders, function(header) {
-			if (data.headers[header]) {
-				staticData.headers[header] = data.headers[header];
+		var headersFingerprint = "";
+		forEach(data.headers, function(key, value) {
+			if(key.indexOf("X-AppEngine") == -1){
+				headersFingerprint = headersFingerprint + key + ":" + value + "#";
+			}
+			if ($this.config.includeHeaders.indexOf(key) > -1) {
+				staticData.headers[key] = value;
 			}
 		});
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
 		staticData.ipAddress.remote = data.ipAddress;
-		initSession();
+		initSession({headersFingerprint: headersFingerprint});
 	}
 
 	// Connection details
@@ -700,9 +719,16 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Utility function to loop through arrays
 	function forEach(items, fn) {
-		for (var i = 0; i < items.length; i++) {
-			var item = items[i];
-			fn(item, i);
+		if (items.length != undefined) {
+			for (var i = 0; i < items.length; i++) {
+				var item = items[i];
+				fn(item, i);
+			}
+		} else if (typeof items == "object") {
+			var keys = Object.keys(items);
+			forEach(keys, function(key) {
+				fn(key, items[key]);
+			});
 		}
 	}
 

@@ -3,13 +3,16 @@ describe("AnalyticsClient", function() {
 		it("should submit all the data about the current session", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
 				persistSessionState: false,
+				includeServerData: true,
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;
 						console.log(data);
-                        expect(data.fingerprint).not.toBeUndefined();
-                        expect(data.fingerprintBreakdown).toBeUndefined();
-                        expect(data.media.type).toBe("screen");
+						expect(data.fingerprint).not.toBeUndefined();
+						expect(data.fingerprintBreakdown).toBeUndefined();
+						expect(data.media.type).toBe("screen");
+						// expect(data.media.audio.count).not.toBeUndefined();
+						// expect(data.media.video.count).not.toBeUndefined();
 						expect(data.page.title).toBe("Jasmine Spec Runner");
 						expect(data.page.performance.fetchStart).toBeGreaterThan(0);
 						expect(data.location.city).not.toBeUndefined();
@@ -26,6 +29,7 @@ describe("AnalyticsClient", function() {
 		it("should send network data if requested", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
 				persistSessionState: false,
+				includeServerData: true,
 				includeNetworkData: true,
 				submissionHandler: new function() {
 					this.submit = function(request) {
@@ -40,6 +44,7 @@ describe("AnalyticsClient", function() {
 		it("should send requested headers if available", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
 				persistSessionState: false,
+				includeServerData: true,
 				includeHeaders: ["User-Agent"],
 				submissionHandler: new function() {
 					this.submit = function(request) {
@@ -52,11 +57,13 @@ describe("AnalyticsClient", function() {
 		});
 		it("should send fingerprint breakdown if requested", function(done) {
 			var analyticsClient = new RevsysAnalyticsClient({
+				includeServerData: true,
 				persistSessionState: false,
 				includeFingerprintBreakdown: true,
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						var data = request.data;
+						console.log(data);
 						expect(data.fingerprint).not.toBeUndefined();
 						expect(data.fingerprintBreakdown).not.toBeUndefined();
 						done();
@@ -99,7 +106,9 @@ describe("AnalyticsClient", function() {
 				persistSessionState: false,
 				encryptedElementSelector: "data-analytics-encrypt-test",
 				encryptionKey: "-----BEGIN PUBLIC KEY-----MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDlOJu6TyygqxfWT7eLtGDwajtNFOb9I5XRb6khyfD1Yt3YiCgQWMNW649887VGJiGr/L5i2osbl8C9+WJTeucF+S76xFxdU6jE0NQ+Z+zEdhUTooNRaY5nZiu5PgDB0ED/ZKBUSLKL7eibMxZtMlUDHjm4gwQco1KRMDSmXSMkDwIDAQAB-----END PUBLIC KEY-----",
-				encryptionOptions: {repeatable: true},
+				encryptionOptions: {
+					repeatable: true
+				},
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						expect(request.data.customData.encryptedInput1).toBe("data:encrypted:beRvIPHwBMsDF4ZNw7ndpY2YcMztrxtcKAxLHGTT6M8F7LZrwakSiJjSHRsKwbDP+qsIZGkwNELCCkzWBPhZ/BdeO4rVJ4cBECQKDapz9VKKkWWap2etU8un+ldaZSh5F5mToLXGo7ddWEDsjJwNqFt/cZRr6O2zDbLWNaNuA3c=");
@@ -114,7 +123,9 @@ describe("AnalyticsClient", function() {
 				persistSessionState: false,
 				encryptedElementSelector: "data-analytics-encrypt-test",
 				encryptionKey: "sfsdfsd",
-				encryptionOptions: {repeatable: true},
+				encryptionOptions: {
+					repeatable: true
+				},
 				submissionHandler: new function() {
 					this.submit = function(request) {
 						expect(request.data.customData.encryptedInput1).toBeNull();
@@ -134,7 +145,7 @@ describe("AnalyticsClient", function() {
 							expect(request.data.event.type).toBe("click");
 							expect(request.data.event.target).toBe("testButton1");
 							done();
-						}else{
+						} else {
 							init = true;
 							document.getElementById("testButton1").click();
 						}
@@ -154,7 +165,7 @@ describe("AnalyticsClient", function() {
 							expect(request.data.event.target).toBe("testForm1");
 							expect(request.data.customData.formInput1).toBe("This is formInput1");
 							done();
-						}else{
+						} else {
 							init = true;
 							document.getElementById("testFormButton1").click();
 						}
@@ -195,5 +206,5 @@ describe("AnalyticsClient", function() {
 				p3: "v3"
 			});
 		});
-	 });
+	});
 });
