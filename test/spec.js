@@ -11,8 +11,6 @@ describe("AnalyticsClient", function() {
 						expect(data.fingerprint).not.toBeUndefined();
 						expect(data.fingerprintBreakdown).toBeUndefined();
 						expect(data.media.type).toBe("screen");
-						// expect(data.media.audio.count).not.toBeUndefined();
-						// expect(data.media.video.count).not.toBeUndefined();
 						expect(data.page.title).toBe("Jasmine Spec Runner");
 						expect(data.page.performance.fetchStart).toBeGreaterThan(0);
 						expect(data.location.city).not.toBeUndefined();
@@ -66,6 +64,8 @@ describe("AnalyticsClient", function() {
 						console.log(data);
 						expect(data.fingerprint).not.toBeUndefined();
 						expect(data.fingerprintBreakdown).not.toBeUndefined();
+						expect(data.fingerprintBreakdown.audioDevices).toBeGreaterThan(-1);
+						expect(data.fingerprintBreakdown.videoDevices).toBeGreaterThan(-1);
 						done();
 					};
 				}

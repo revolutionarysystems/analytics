@@ -193,24 +193,29 @@ var RevsysAnalyticsClient = function(options) {
 			});
 		}
 		if (newSession) {
-			var fingerprint = new Fingerprint({
-				breakdown: $this.config.includeFingerprintBreakdown,
-				canvas: true,
-				webgl: true,
-				screen_resolution: true
-			}).get(fpData);
-			if ($this.config.includeFingerprintBreakdown == true) {
-				staticData.fingerprint = fingerprint.value;
-				staticData.fingerprintBreakdown = fingerprint.breakdown;
-			} else {
-				staticData.fingerprint = fingerprint;
-			}
-			callSafe(function() {
-				getLocalIPs(function(localIPs) {
-					localIPs.sort();
-					localIPs.reverse();
-					staticData.ipAddress.local = localIPs;
-					callback();
+			getMediaDevices(function(devices) {
+				fpData = fpData || {};
+				fpData.audioDevices = devices.audio;
+				fpData.videoDevices = devices.video;
+				var fingerprint = new Fingerprint({
+					breakdown: $this.config.includeFingerprintBreakdown,
+					canvas: true,
+					webgl: true,
+					screen_resolution: true
+				}).get(fpData);
+				if ($this.config.includeFingerprintBreakdown == true) {
+					staticData.fingerprint = fingerprint.value;
+					staticData.fingerprintBreakdown = fingerprint.breakdown;
+				} else {
+					staticData.fingerprint = fingerprint;
+				}
+				callSafe(function() {
+					getLocalIPs(function(localIPs) {
+						localIPs.sort();
+						localIPs.reverse();
+						staticData.ipAddress.local = localIPs;
+						callback();
+					});
 				});
 			});
 		} else {
@@ -423,6 +428,28 @@ var RevsysAnalyticsClient = function(options) {
 		return device;
 	}
 
+	// Get information about media devices
+	function getMediaDevices(callback) {
+		var devices = {
+			audio: 0,
+			video: 0
+		};
+		if (MediaStreamTrack && MediaStreamTrack.getSources) {
+			MediaStreamTrack.getSources(function(data) {
+				forEach(data, function(device) {
+					if (device.kind == "audio") {
+						devices.audio = devices.audio + 1;
+					} else if (device.kind == "video") {
+						devices.video = devices.video + 1;
+					}
+				});
+				callback(devices);
+			});
+		} else {
+			callback(devices);
+		}
+	}
+
 	// Browser information
 	function getBrowserInfo() {
 		var browser = {
@@ -504,9 +531,6 @@ var RevsysAnalyticsClient = function(options) {
 				break;
 			}
 		}
-		// if(MediaStreamTrack && MediaStreamTrack.getSources){
-		// 	MediaStreamTrack.getSources()
-		// }
 		return media;
 	}
 
@@ -548,63 +572,69 @@ var RevsysAnalyticsClient = function(options) {
 	// Retrieve local IP using webRTC
 	function getLocalIPs(callback) {
 		var localIPs = [];
-		var RTCPeerConnection = /*window.RTCPeerConnection ||*/ targetWindow.webkitRTCPeerConnection || targetWindow.mozRTCPeerConnection;
+		var RTCPeerConnection = targetWindow.RTCPeerConnection || targetWindow.webkitRTCPeerConnection || targetWindow.mozRTCPeerConnection;
 
 		if (RTCPeerConnection) {
 			(function() {
-				var rtc = new RTCPeerConnection({
-					iceServers: []
-				});
-				if (1 || targetWindow.mozRTCPeerConnection) { // FF [and now Chrome!] needs a channel/stream to proceed
-					rtc.createDataChannel('', {
-						reliable: false
+
+				try {
+					var rtc = new RTCPeerConnection({
+						iceServers: []
 					});
-				};
-
-				rtc.onicecandidate = function(evt) {
-					if (evt.candidate == null) {
-						callback(localIPs);
-					} else {
-						// convert the candidate to SDP so we can run it through our general parser
-						// see https://twitter.com/lancestout/status/525796175425720320 for details
-						if (evt.candidate) {
-							grepSDP("a=" + evt.candidate.candidate);
-						}
+					if (rtc.createDataChannel) {
+						rtc.createDataChannel('', {
+							reliable: false
+						});
 					}
-				};
-				rtc.createOffer(function(offerDesc) {
-					grepSDP(offerDesc.sdp);
-					rtc.setLocalDescription(offerDesc);
-				}, function(e) {
-					callback([]);
-				});
+
+					rtc.onicecandidate = function(evt) {
+						if (evt.candidate == null) {
+							callback(localIPs);
+						} else {
+							// convert the candidate to SDP so we can run it through our general parser
+							// see https://twitter.com/lancestout/status/525796175425720320 for details
+							if (evt.candidate) {
+								grepSDP("a=" + evt.candidate.candidate);
+							}
+						}
+					};
+					rtc.createOffer(function(offerDesc) {
+						grepSDP(offerDesc.sdp);
+						rtc.setLocalDescription(offerDesc);
+					}, function(e) {
+						callback([]);
+					});
 
 
-				var addrs = Object.create(null);
-				addrs["0.0.0.0"] = false;
+					var addrs = Object.create(null);
+					addrs["0.0.0.0"] = false;
 
-				function addIP(newAddr) {
-					if (newAddr in addrs) return;
-					else addrs[newAddr] = true;
-					localIPs.push(newAddr);
-				}
+					function addIP(newAddr) {
+						if (newAddr in addrs) return;
+						else addrs[newAddr] = true;
+						localIPs.push(newAddr);
+					}
 
-				function grepSDP(sdp) {
-					var hosts = [];
-					sdp.split('\r\n').forEach(function(line) { // c.f. http://tools.ietf.org/html/rfc4566#page-39
-						if (~line.indexOf("a=candidate")) { // http://tools.ietf.org/html/rfc4566#section-5.13
-							var parts = line.split(' '), // http://tools.ietf.org/html/rfc5245#section-15.1
-								addr = parts[4],
-								type = parts[7];
-							if (type === 'host') {
+					function grepSDP(sdp) {
+						var hosts = [];
+						sdp.split('\r\n').forEach(function(line) { // c.f. http://tools.ietf.org/html/rfc4566#page-39
+							if (~line.indexOf("a=candidate")) { // http://tools.ietf.org/html/rfc4566#section-5.13
+								var parts = line.split(' '), // http://tools.ietf.org/html/rfc5245#section-15.1
+									addr = parts[4],
+									type = parts[7];
+								if (type === 'host') {
+									addIP(addr);
+								}
+							} else if (~line.indexOf("c=")) { // http://tools.ietf.org/html/rfc4566#section-5.7
+								var parts = line.split(' '),
+									addr = parts[2];
 								addIP(addr);
 							}
-						} else if (~line.indexOf("c=")) { // http://tools.ietf.org/html/rfc4566#section-5.7
-							var parts = line.split(' '),
-								addr = parts[2];
-							addIP(addr);
-						}
-					});
+						});
+					}
+				} catch (e) {
+					$this.console.error(e);
+					callback([]);
 				}
 			})();
 		} else {
@@ -641,8 +671,8 @@ var RevsysAnalyticsClient = function(options) {
 		staticData.headers = {};
 		var headersFingerprint = "";
 		forEach(data.headers, function(key, value) {
-			if(key.indexOf("X-AppEngine") == -1){
-				headersFingerprint = headersFingerprint + key + ":" + value + "#";
+			if (key.indexOf("X-AppEngine") == -1) {
+				headersFingerprint = headersFingerprint + key + "#";
 			}
 			if ($this.config.includeHeaders.indexOf(key) > -1) {
 				staticData.headers[key] = value;
@@ -651,7 +681,9 @@ var RevsysAnalyticsClient = function(options) {
 		serverTime = data.timestamp;
 		serverTimeOffset = new Date().getTime() - serverTime;
 		staticData.ipAddress.remote = data.ipAddress;
-		initSession({headersFingerprint: headersFingerprint});
+		initSession({
+			headersFingerprint: headersFingerprint
+		});
 	}
 
 	// Connection details
