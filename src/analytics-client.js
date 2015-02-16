@@ -356,7 +356,7 @@ var RevsysAnalyticsClient = function(options) {
 		}
 		var callback = function(userId) {
 			if (localStorage) {
-				//localStorage.userId = userId;
+				localStorage.userId = userId;
 			}
 			fn(userId);
 		}
