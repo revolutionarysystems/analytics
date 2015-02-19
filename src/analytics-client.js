@@ -309,7 +309,7 @@ var RevsysAnalyticsClient = function(options) {
 		forEach(elements, function(element) {
 			var propertyName = element.getAttribute(selector);
 			var propertyValue = null;
-			if (element.tagName == "INPUT") {
+			if (element.tagName == "INPUT" || element.tagName == "SELECT") {
 				propertyValue = element.value;
 			} else {
 				var childNodes = element.childNodes;
