@@ -485,7 +485,8 @@ var RevsysAnalyticsClient = function(options) {
 				height: targetWindow.document.documentElement.offsetHeight,
 				xOffset: targetWindow.pageXOffset,
 				yOffset: targetWindow.pageYOffset
-			}
+			},
+			visibility: targetWindow.document.visibilityState || targetWindow.document.webkitVisibilityState || targetWindow.document.mozVisibilityState
 		}
 		if (targetWindow.performance) {
 			page.performance = targetWindow.performance.timing;
@@ -563,7 +564,8 @@ var RevsysAnalyticsClient = function(options) {
 			result.push({
 				src: frame.src,
 				name: frame.name,
-				id: frame.id
+				id: frame.id,
+				position: flatten(frame.getBoundingClientRect())
 			});
 		});
 		return result;
