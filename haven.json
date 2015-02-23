@@ -28,6 +28,9 @@
 		"name": "revsys-jsencrypt",
 		"version": "0.1.0-SNAPSHOT"
 	}, {
+		"name": "font-detector",
+		"version": "0.1.0-SNAPSHOT"
+	}, {
 		"name": "jasmine",
 		"version": "2.0.0",
 		"scope": "test"
