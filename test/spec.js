@@ -8,8 +8,11 @@ describe("AnalyticsClient", function() {
 					this.submit = function(request) {
 						var data = request.data;
 						console.log(data);
-						expect(data.fingerprint).not.toBeUndefined();
-						expect(data.fingerprintBreakdown).toBeUndefined();
+						expect(data.fingerprints.preferences).not.toBeUndefined();
+						expect(data.fingerprints.device).not.toBeUndefined();
+						expect(data.fingerprints.browser).not.toBeUndefined();
+						expect(data.fingerprints.connection).not.toBeUndefined();
+						expect(data.fingerprints.breakdown).toBeUndefined();
 						expect(data.media.type).toBe("screen");
 						expect(data.page.title).toBe("Jasmine Spec Runner");
 						expect(data.page.performance.fetchStart).toBeGreaterThan(0);
@@ -62,10 +65,8 @@ describe("AnalyticsClient", function() {
 					this.submit = function(request) {
 						var data = request.data;
 						console.log(data);
-						expect(data.fingerprint).not.toBeUndefined();
-						expect(data.fingerprintBreakdown).not.toBeUndefined();
-						expect(data.fingerprintBreakdown.audioDevices).toBeGreaterThan(-1);
-						expect(data.fingerprintBreakdown.videoDevices).toBeGreaterThan(-1);
+						expect(data.fingerprints.preferences).not.toBeUndefined();
+						expect(data.fingerprints.breakdown).not.toBeUndefined();
 						done();
 					};
 				}

@@ -18,7 +18,6 @@ var KinesisAnalyticsSubmissionHandler = function(kinesisClient) {
 			onError: request.onError
 		});
 	}
-
 };
 
 var RevsysAnalyticsClient = function(options) {
@@ -193,29 +192,13 @@ var RevsysAnalyticsClient = function(options) {
 			});
 		}
 		if (newSession) {
-			getMediaDevices(function(devices) {
-				fpData = fpData || {};
-				fpData.audioDevices = devices.audio;
-				fpData.videoDevices = devices.video;
-				var fingerprint = new Fingerprint({
-					breakdown: $this.config.includeFingerprintBreakdown,
-					canvas: true,
-					webgl: true,
-					screen_resolution: true
-				}).get(fpData);
-				if ($this.config.includeFingerprintBreakdown == true) {
-					staticData.fingerprint = fingerprint.value;
-					staticData.fingerprintBreakdown = fingerprint.breakdown;
-				} else {
-					staticData.fingerprint = fingerprint;
-				}
-				callSafe(function() {
-					getLocalIPs(function(localIPs) {
-						localIPs.sort();
-						localIPs.reverse();
-						staticData.ipAddress.local = localIPs;
-						callback();
-					});
+			callSafe(function() {
+				getLocalIPs(function(localIPs) {
+					localIPs.sort();
+					localIPs.reverse();
+					staticData.ipAddress.local = localIPs;
+					staticData.fingerprints = generateFingerprints(staticData);
+					callback();
 				});
 			});
 		} else {
@@ -434,8 +417,8 @@ var RevsysAnalyticsClient = function(options) {
 			audio: 0,
 			video: 0
 		};
-		if (MediaStreamTrack && MediaStreamTrack.getSources) {
-			MediaStreamTrack.getSources(function(data) {
+		if (targetWindow.MediaStreamTrack && targetWindow.MediaStreamTrack.getSources) {
+			targetWindow.MediaStreamTrack.getSources(function(data) {
 				forEach(data, function(device) {
 					if (device.kind == "audio") {
 						devices.audio = devices.audio + 1;
@@ -697,6 +680,327 @@ var RevsysAnalyticsClient = function(options) {
 		return flatten(navConnection);
 	}
 
+	function generateFingerprints(data) {
+		// Generate fingerprint based on user preferences
+		var pfpData = {
+			cookieEnabled: targetWindow.navigator.cookieEnabled.toString(),
+			language: targetWindow.navigator.language,
+			timezoneOffset: new Date().getTimezoneOffset(),
+			localStorage: hasLocalStorage(),
+			sessionStorage: hasSessionStorage()
+		}
+
+		var pfp = hashValues(pfpData);
+
+		// Generate fingerprint based on device information
+		var width = targetWindow.screen.width;
+		var height = targetWindow.screen.height;
+		var pixelRatio = targetWindow.devicePixelRatio;
+		var screenSize = Math.sqrt((height * height) + (width * width)) / (pixelRatio * 96);
+		var webGL = getWebGLFingerprint();
+		var userAgent = targetWindow.navigator.userAgent;
+		userAgent = userAgent.substring(userAgent.indexOf('(') + 1, userAgent.indexOf(')'));
+		var dfpData = {
+			platform: targetWindow.navigator.platform,
+			hardwareConcurrency: targetWindow.navigator.hardwareConcurrency,
+			glVendor: webGL.glVendor,
+			glRenderer: webGL.glRenderer,
+			colorDepth: targetWindow.screen.colorDepth,
+			maxTouchPoints: targetWindow.navigator.maxTouchPoints,
+			pixelRatio: pixelRatio,
+			screenSize: screenSize,
+			userAgent: userAgent
+		}
+
+		var dfp = hashValues(dfpData);
+
+		// Generate fingerprint based on browser information
+		var bfpData = {
+			userAgent: targetWindow.navigator.userAgent,
+			platform: targetWindow.navigator.platform,
+			mimeTypes: targetWindow.navigator.mimeTypes.length,
+			plugins: getPluginsString(),
+			canvasFingerprint: getCanvasFingerprint(),
+			glFingerprint: webGL.glFingerprint
+		}
+
+		var bfp = hashValues(bfpData);
+
+		// Generate fingerprint based on connection information
+		var cfpData = {
+			networkName: data.network ? data.network.name : "Unknown",
+			networkDescription: data.network ? data.network.description : "Unknown",
+			remoteIP: data.ipAddress.remote,
+			localIP: data.ipAddress.local
+		}
+
+		var cfp = hashValues(cfpData);
+
+		var result = {
+			preferences: pfp,
+			device: dfp,
+			browser: bfp,
+			connection: cfp
+		};
+
+		if ($this.config.includeFingerprintBreakdown == true) {
+			result.breakdown = {
+				preferences: pfpData,
+				device: dfpData,
+				browser: bfpData,
+				connection: cfpData
+			}
+		}
+
+		return result;
+	}
+
+	function getPluginsString() {
+		var result = "";
+		forEach(navigator.plugins, function(plugin) {
+			var pluginString = plugin.name + "::" + plugin.description + "::"
+			forEach(plugin, function(mimeType) {
+				pluginString = pluginString + mimeType.type + "~" + mimeType.suffixes + ",";
+			})
+			result = result + pluginString + ";";
+		});
+		return result;
+	}
+
+	function getCanvasFingerprint() {
+		if (!isCanvasSupported()) {
+			return "Not supported";
+		}
+		var canvas = document.createElement('canvas');
+		var ctx = canvas.getContext('2d');
+		// https://www.browserleaks.com/canvas#how-does-it-work
+		var txt = 'Cwm fjordbank glyphs vext quiz';
+		ctx.textBaseline = "top";
+		ctx.font = "14px 'Arial'";
+		ctx.textBaseline = "alphabetic";
+		ctx.fillStyle = "#f60";
+		ctx.fillRect(125, 1, 62, 20);
+		ctx.fillStyle = "#069";
+		ctx.fillText(txt, 2, 15);
+		ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+		ctx.fillText(txt, 4, 17);
+		return canvas.toDataURL();
+	}
+
+	function getWebGLFingerprint() {
+		var result = {
+			glVendor: "Not supported",
+			glRenderer: "Not supported",
+			glFingerprint: "Not supported"
+		}
+
+		if (!isCanvasSupported()) {
+			return result;
+		}
+
+		// Create canvas
+		var canvas = document.createElement("canvas");
+		canvas.setAttribute("width", "640px");
+		canvas.setAttribute("height", "480px");
+		//document.body.appendChild(canvas);
+
+		// Init webgl
+		var gl;
+		try {
+			gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+		} catch (e) {}
+		if (!gl) {
+			return result;
+		}
+
+		// Get vendor and renderer if available
+		if (gl.getSupportedExtensions().indexOf("WEBGL_debug_renderer_info") >= 0) {
+			result.glVendor = gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info').UNMASKED_VENDOR_WEBGL);
+			result.glRenderer = gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info').UNMASKED_RENDERER_WEBGL);
+		}
+
+		// Clear canvas
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.enable(gl.DEPTH_TEST);
+		gl.depthFunc(gl.LEQUAL);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+		// Set viewport
+		gl.viewport(0, 0, canvas.width, canvas.height);
+
+		// Create cube
+		// Vertex Data
+		var vertexBuffer;
+		vertexBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+		var verts = [
+			// Front face
+			-1.0, -1.0, 1.0,
+			1.0, -1.0, 1.0,
+			1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
+
+			// Back face
+			-1.0, -1.0, -1.0, -1.0, 1.0, -1.0,
+			1.0, 1.0, -1.0,
+			1.0, -1.0, -1.0,
+
+			// Top face
+			-1.0, 1.0, -1.0, -1.0, 1.0, 1.0,
+			1.0, 1.0, 1.0,
+			1.0, 1.0, -1.0,
+
+			// Bottom face
+			-1.0, -1.0, -1.0,
+			1.0, -1.0, -1.0,
+			1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
+
+			// Right face
+			1.0, -1.0, -1.0,
+			1.0, 1.0, -1.0,
+			1.0, 1.0, 1.0,
+			1.0, -1.0, 1.0,
+
+			// Left face
+			-1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0
+		];
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+
+		// Color data
+		var colorBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+		var faceColors = [
+			[1.0, 0.0, 0.0, 1.0], // Front face
+			[0.0, 1.0, 0.0, 1.0], // Back face
+			[0.0, 0.0, 1.0, 1.0], // Top face
+			[1.0, 1.0, 0.0, 1.0], // Bottom face
+			[1.0, 0.0, 1.0, 1.0], // Right face
+			[0.0, 1.0, 1.0, 1.0] // Left face
+		];
+		var vertexColors = [];
+		for (var i in faceColors) {
+			var color = faceColors[i];
+			for (var j = 0; j < 4; j++) {
+				vertexColors = vertexColors.concat(color);
+			}
+		}
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexColors), gl.STATIC_DRAW);
+
+		// Index data (defines the triangles to be drawn)
+		var cubeIndexBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer);
+		var cubeIndices = [
+			0, 1, 2, 0, 2, 3, // Front face
+			4, 5, 6, 4, 6, 7, // Back face
+			8, 9, 10, 8, 10, 11, // Top face
+			12, 13, 14, 12, 14, 15, // Bottom face
+			16, 17, 18, 16, 18, 19, // Right face
+			20, 21, 22, 20, 22, 23 // Left face
+		];
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeIndices), gl.STATIC_DRAW);
+
+		var cube = {
+			buffer: vertexBuffer,
+			colorBuffer: colorBuffer,
+			indices: cubeIndexBuffer,
+			vertSize: 3,
+			nVerts: 24,
+			colorSize: 4,
+			nColors: 24,
+			nIndices: 36,
+			primtype: gl.TRIANGLES
+		};
+
+		// Create a model view matrix with camera at 0, 0, -6
+		var modelViewMatrix = mat4.create();
+		mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -6]);
+
+		// Create a project matrix with 45 degree field of view
+		var projectionMatrix = mat4.create();
+		mat4.perspective(projectionMatrix, Math.PI / 4,
+			canvas.width / canvas.height, 1, 10000);
+
+		// Create shaders
+		var vertexShaderSource =
+
+			"    attribute vec3 vertexPos;\n" +
+			"    attribute vec4 vertexColor;\n" +
+			"    uniform mat4 modelViewMatrix;\n" +
+			"    uniform mat4 projectionMatrix;\n" +
+			"    varying vec4 vColor;\n" +
+			"    void main(void) {\n" +
+			"        // Return the transformed and projected vertex value\n" +
+			"        gl_Position = projectionMatrix * modelViewMatrix * \n" +
+			"            vec4(vertexPos, 1.0);\n" +
+			"        // Output the vertexColor in vColor\n" +
+			"        vColor = vertexColor;\n" +
+			"    }\n";
+
+		var fragmentShaderSource =
+			"    precision mediump float;\n" +
+			"    varying vec4 vColor;\n" +
+			"    void main(void) {\n" +
+			"    // Return the pixel color: always output white\n" +
+			"    gl_FragColor = vColor;\n" +
+			"}\n";
+
+		var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		gl.shaderSource(fragmentShader, fragmentShaderSource);
+		gl.compileShader(fragmentShader);
+		var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		gl.shaderSource(vertexShader, vertexShaderSource);
+		gl.compileShader(vertexShader);
+
+		// link them together into a new program
+		var shaderProgram = gl.createProgram();
+		gl.attachShader(shaderProgram, vertexShader);
+		gl.attachShader(shaderProgram, fragmentShader);
+		gl.linkProgram(shaderProgram);
+
+		// get pointers to the shader params
+		var shaderVertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vertexPos");
+		gl.enableVertexAttribArray(shaderVertexPositionAttribute);
+		var shaderVertexColorAttribute = gl.getAttribLocation(shaderProgram, "vertexColor")
+		gl.enableVertexAttribArray(shaderVertexColorAttribute);
+
+		var shaderProjectionMatrixUniform = gl.getUniformLocation(shaderProgram, "projectionMatrix");
+		var shaderModelViewMatrixUniform = gl.getUniformLocation(shaderProgram, "modelViewMatrix");
+
+		if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+			return result;
+		}
+
+		// Rotate the cube
+		var fract = 0.48;
+		var angle = Math.PI * 2 * fract;
+		mat4.rotate(modelViewMatrix, modelViewMatrix, angle, [1.2, 1, 1]);
+
+		// clear the background (with black)
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.enable(gl.DEPTH_TEST);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+		// set the shader to use
+		gl.useProgram(shaderProgram);
+
+		// connect up the shader parameters: vertex position, color and projection/model matrices
+		// set up the buffers
+		gl.bindBuffer(gl.ARRAY_BUFFER, cube.buffer);
+		gl.vertexAttribPointer(shaderVertexPositionAttribute, cube.vertSize, gl.FLOAT, false, 0, 0);
+		gl.bindBuffer(gl.ARRAY_BUFFER, cube.colorBuffer);
+		gl.vertexAttribPointer(shaderVertexColorAttribute, cube.colorSize, gl.FLOAT, false, 0, 0);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cube.indices);
+
+		gl.uniformMatrix4fv(shaderProjectionMatrixUniform, false, projectionMatrix);
+		gl.uniformMatrix4fv(shaderModelViewMatrixUniform, false, modelViewMatrix);
+
+		// draw the object
+		gl.drawElements(cube.primtype, cube.nIndices, gl.UNSIGNED_SHORT, 0);
+
+		result.glFingerprint = canvas.toDataURL("image/png");
+
+		return result;
+	}
+
 	// Utility function to safely invoke a function, logging any error throw
 	function callSafe(f) {
 		try {
@@ -766,6 +1070,16 @@ var RevsysAnalyticsClient = function(options) {
 		}
 	}
 
+	// Utility method to create a hash string from values of a map
+	function hashValues(map) {
+		var vals = [];
+		for (var o in map) {
+			vals.push(map[o]);
+		}
+		var valString = vals.join('###');
+		return CryptoJS.SHA256(valString).toString(CryptoJS.enc.Base64);
+	}
+
 	// Utility method to see if browser supports CORS
 	function supportsCors() {
 		var xhr = new XMLHttpRequest();
@@ -777,6 +1091,30 @@ var RevsysAnalyticsClient = function(options) {
 			return true;
 		}
 		return false;
+	}
+
+	// Utility methods for checking if sessionStorage and localStorage are available
+	// https://bugzilla.mozilla.org/show_bug.cgi?id=781447
+	function hasLocalStorage() {
+		try {
+			return !!window.localStorage;
+		} catch (e) {
+			return false;
+		}
+	}
+
+	function hasSessionStorage() {
+		try {
+			return !!window.sessionStorage;
+		} catch (e) {
+			return false;
+		}
+	}
+
+	// Utility method to see if canvas is supported
+	function isCanvasSupported() {
+		var elem = document.createElement('canvas');
+		return !!(elem.getContext && elem.getContext('2d'));
 	}
 
 	// Initialise the client if the page has loaded, or wait until it has finished loading

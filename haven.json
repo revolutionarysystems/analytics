@@ -18,11 +18,12 @@
 		"name": "form2js",
 		"version": "2.1.0"
 	}, {
+		"name": "gl-matrix",
+		"version": "2.2.1",
+		"includes": ["dist/gl-matrix.js"]
+	}, {
 		"name": "kinesis-js",
 		"version": "0.1.1"
-	}, {
-		"name": "fingerprintjs",
-		"version": "0.6.0-SNAPSHOT"
 	}, {
 		"name": "revsys-jsencrypt",
 		"version": "0.1.0-SNAPSHOT"
