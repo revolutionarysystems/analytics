@@ -721,6 +721,7 @@ var RevsysAnalyticsClient = function(options) {
 		var bfpData = {
 			userAgent: targetWindow.navigator.userAgent,
 			platform: targetWindow.navigator.platform,
+			language: targetWindow.navigator.language.toLowerCase(),
 			mimeTypes: targetWindow.navigator.mimeTypes.length,
 			plugins: getPluginsString(),
 			canvasFingerprint: getCanvasFingerprint(),
