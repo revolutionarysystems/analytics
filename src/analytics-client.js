@@ -1666,8 +1666,8 @@ var RevsysAnalyticsClient = function(options) {
 	function hasLocalStorage() {
 		try {
 			if (!!window.localStorage) {
-				window.localStorage.test = "test";
-				return window.localStorage.test == "test";
+				window.localStorage.revsys_analytics_test = "test";
+				return window.localStorage.revsys_analytics_test == "test";
 			} else {
 				return false;
 			}
@@ -1679,8 +1679,8 @@ var RevsysAnalyticsClient = function(options) {
 	function hasSessionStorage() {
 		try {
 			if (!!window.sessionStorage) {
-				window.sessionStorage.test = "test";
-				return window.sessionStorage.test == "test";
+				window.sessionStorage.revsys_analytics_test = "test";
+				return window.sessionStorage.revsys_analytics_test == "test";
 			} else {
 				return false;
 			}
