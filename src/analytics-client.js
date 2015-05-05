@@ -89,7 +89,9 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Static data sent with every request
 	var staticData = {
-		ipAddress: {}
+		ipAddress: {},
+		localStorage: hasLocalStorage(),
+		sessionStorage: hasSessionStorage()
 	};
 
 	var encrypt;
@@ -335,57 +337,55 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Get userId using appCache or localStorage
 	function getUserId(fn) {
-		var userId;
-		if (localStorage) {
-			userId = localStorage.userId;
-		}
-		var callback = function(userId) {
-			if (localStorage) {
+		if (hasLocalStorage()) {
+			var userId = localStorage.userId;
+			var callback = function(userId) {
 				localStorage.userId = userId;
+				fn(userId);
 			}
-			fn(userId);
-		}
-		if (userId == undefined) {
-			userId = generateUUID();
-			if ($this.config.cacheServer) {
-				Ajax.get($this.config.cacheServer, {
-					headers: {
-						"X-Cache-Data": userId
-					},
-					onSuccess: function(data) {
-						userId = data;
-						callback(userId);
-					},
-					onError: function(err) {
-						callback(userId);
-					}
-				});
+			if (userId == undefined) {
+				userId = generateUUID();
+				if ($this.config.cacheServer) {
+					Ajax.get($this.config.cacheServer, {
+						headers: {
+							"X-Cache-Data": userId
+						},
+						onSuccess: function(data) {
+							userId = data;
+							callback(userId);
+						},
+						onError: function(err) {
+							callback(userId);
+						}
+					});
+				} else {
+					callback(userId);
+				}
 			} else {
 				callback(userId);
 			}
 		} else {
-			callback(userId);
+			fn(generateUUID());
 		}
 	}
 
 	// Get sessionId using sessionStorage
 	function getSessionId() {
-		var sessionId;
-		if (sessionStorage) {
-			sessionId = sessionStorage.sessionId;
-		}
-		if (sessionId == undefined) {
-			sessionId = generateUUID();
-			if (sessionStorage) {
+		if (hasSessionStorage()) {
+			var sessionId = sessionStorage.sessionId;
+			if (sessionId == undefined) {
+				sessionId = generateUUID();
 				sessionStorage.sessionId = sessionId;
 			}
+			return sessionId;
+		} else {
+			return generateUUID();
 		}
-		return sessionId;
 	}
 
 	// Get session data from sessionStorage
 	function getSessionData() {
-		if ($this.config.persistSessionState != true) {
+		if ($this.config.persistSessionState != true || !hasSessionStorage()) {
 			return null;
 		}
 		var sessionData = sessionStorage.sessionData;
@@ -398,7 +398,7 @@ var RevsysAnalyticsClient = function(options) {
 
 	// Persist session data
 	function persistSessionData(data) {
-		if ($this.config.persistSessionState == true) {
+		if ($this.config.persistSessionState == true && hasSessionStorage()) {
 			sessionStorage.sessionData = JSON.stringify(data);
 		}
 	}
@@ -1009,1655 +1009,571 @@ var RevsysAnalyticsClient = function(options) {
 	function getFontsList() {
 		var fontList = [];
 
-		if (fontDetector.test('a charming font')) {
-			fontList.push('a charming font');
-		}
-		if (fontDetector.test('abadi mt condensed')) {
-			fontList.push('abadi mt condensed');
-		}
-		if (fontDetector.test('abadi mt condensed extra bold')) {
-			fontList.push('abadi mt condensed extra bold');
-		}
-		if (fontDetector.test('abadi mt condensed light')) {
-			fontList.push('abadi mt condensed light');
-		}
-		if (fontDetector.test('academy engraved let')) {
-			fontList.push('academy engraved let');
-		}
-		if (fontDetector.test('adobe fangsong std')) {
-			fontList.push('adobe fangsong std');
-		}
-		if (fontDetector.test('adobe garamond')) {
-			fontList.push('adobe garamond');
-		}
-		if (fontDetector.test('adobe heiti std')) {
-			fontList.push('adobe heiti std');
-		}
-		if (fontDetector.test('adobe kaiti std')) {
-			fontList.push('adobe kaiti std');
-		}
-		if (fontDetector.test('adobe ming std')) {
-			fontList.push('adobe ming std');
-		}
-		if (fontDetector.test('adobe myungjo std')) {
-			fontList.push('adobe myungjo std');
-		}
-		if (fontDetector.test('adobe song std')) {
-			fontList.push('adobe song std');
-		}
-		if (fontDetector.test('agency fb')) {
-			fontList.push('agency fb');
-		}
-		if (fontDetector.test('aharoni')) {
-			fontList.push('aharoni');
-		}
-		if (fontDetector.test('alba')) {
-			fontList.push('alba');
-		}
-		if (fontDetector.test('alba matter')) {
-			fontList.push('alba matter');
-		}
-		if (fontDetector.test('alba super')) {
-			fontList.push('alba super');
-		}
-		if (fontDetector.test('albertus')) {
-			fontList.push('albertus');
-		}
-		if (fontDetector.test('albertus extra bold')) {
-			fontList.push('albertus extra bold');
-		}
-		if (fontDetector.test('albertus medium')) {
-			fontList.push('albertus medium');
-		}
-		if (fontDetector.test('algerian')) {
-			fontList.push('algerian');
-		}
-		if (fontDetector.test('amaze')) {
-			fontList.push('amaze');
-		}
-		if (fontDetector.test('american typewriter')) {
-			fontList.push('american typewriter');
-		}
-		if (fontDetector.test('andale mono')) {
-			fontList.push('andale mono');
-		}
-		if (fontDetector.test('andale mono ipa')) {
-			fontList.push('andale mono ipa');
-		}
-		if (fontDetector.test('andalus')) {
-			fontList.push('andalus');
-		}
-		if (fontDetector.test('andy')) {
-			fontList.push('andy');
-		}
-		if (fontDetector.test('angsana new')) {
-			fontList.push('angsana new');
-		}
-		if (fontDetector.test('angsanaupc')) {
-			fontList.push('angsanaupc');
-		}
-		if (fontDetector.test('antique olive')) {
-			fontList.push('antique olive');
-		}
-		if (fontDetector.test('antique olive compact')) {
-			fontList.push('antique olive compact');
-		}
-		if (fontDetector.test('apple casual')) {
-			fontList.push('apple casual');
-		}
-		if (fontDetector.test('apple chancery')) {
-			fontList.push('apple chancery');
-		}
-		if (fontDetector.test('arabic transparent')) {
-			fontList.push('arabic transparent');
-		}
-		if (fontDetector.test('arabic typesetting')) {
-			fontList.push('arabic typesetting');
-		}
-		if (fontDetector.test('arial')) {
-			fontList.push('arial');
-		}
-		if (fontDetector.test('arial baltic')) {
-			fontList.push('arial baltic');
-		}
-		if (fontDetector.test('arial black')) {
-			fontList.push('arial black');
-		}
-		if (fontDetector.test('arial ce')) {
-			fontList.push('arial ce');
-		}
-		if (fontDetector.test('arial cyr')) {
-			fontList.push('arial cyr');
-		}
-		if (fontDetector.test('arial greek')) {
-			fontList.push('arial greek');
-		}
-		if (fontDetector.test('arial narrow')) {
-			fontList.push('arial narrow');
-		}
-		if (fontDetector.test('arial rounded mt bold')) {
-			fontList.push('arial rounded mt bold');
-		}
-		if (fontDetector.test('arial tur')) {
-			fontList.push('arial tur');
-		}
-		if (fontDetector.test('arial unicode ms')) {
-			fontList.push('arial unicode ms');
-		}
-		if (fontDetector.test('avant garde')) {
-			fontList.push('avant garde');
-		}
-		if (fontDetector.test('avenir')) {
-			fontList.push('avenir');
-		}
-		if (fontDetector.test('baby kruffy')) {
-			fontList.push('baby kruffy');
-		}
-		if (fontDetector.test('balker')) {
-			fontList.push('balker');
-		}
-		if (fontDetector.test('balthazar')) {
-			fontList.push('balthazar');
-		}
-		if (fontDetector.test('bankgothic lt bt')) {
-			fontList.push('bankgothic lt bt');
-		}
-		if (fontDetector.test('bart')) {
-			fontList.push('bart');
-		}
-		if (fontDetector.test('base')) {
-			fontList.push('base');
-		}
-		if (fontDetector.test('baskerville')) {
-			fontList.push('baskerville');
-		}
-		if (fontDetector.test('baskerville old face')) {
-			fontList.push('baskerville old face');
-		}
-		if (fontDetector.test('batang')) {
-			fontList.push('batang');
-		}
-		if (fontDetector.test('batangche')) {
-			fontList.push('batangche');
-		}
-		if (fontDetector.test('bauhaus')) {
-			fontList.push('bauhaus');
-		}
-		if (fontDetector.test('beesknees itc')) {
-			fontList.push('beesknees itc');
-		}
-		if (fontDetector.test('bell mt')) {
-			fontList.push('bell mt');
-		}
-		if (fontDetector.test('belwe')) {
-			fontList.push('belwe');
-		}
-		if (fontDetector.test('bembo')) {
-			fontList.push('bembo');
-		}
-		if (fontDetector.test('berlin sans fb')) {
-			fontList.push('berlin sans fb');
-		}
-		if (fontDetector.test('berlin sans fb demi')) {
-			fontList.push('berlin sans fb demi');
-		}
-		if (fontDetector.test('bernard mt condensed')) {
-			fontList.push('bernard mt condensed');
-		}
-		if (fontDetector.test('bernhard modern std')) {
-			fontList.push('bernhard modern std');
-		}
-		if (fontDetector.test('berthold akzidenz grotesk be')) {
-			fontList.push('berthold akzidenz grotesk be');
-		}
-		if (fontDetector.test('bickley script')) {
-			fontList.push('bickley script');
-		}
-		if (fontDetector.test('big caslon')) {
-			fontList.push('big caslon');
-		}
-		if (fontDetector.test('bimini')) {
-			fontList.push('bimini');
-		}
-		if (fontDetector.test('bitstream charter')) {
-			fontList.push('bitstream charter');
-		}
-		if (fontDetector.test('bitstream vera sans')) {
-			fontList.push('bitstream vera sans');
-		}
-		if (fontDetector.test('bitstream vera sans mono')) {
-			fontList.push('bitstream vera sans mono');
-		}
-		if (fontDetector.test('bitstream vera serif')) {
-			fontList.push('bitstream vera serif');
-		}
-		if (fontDetector.test('blackadder itc')) {
-			fontList.push('blackadder itc');
-		}
-		if (fontDetector.test('blackletter686 bt')) {
-			fontList.push('blackletter686 bt');
-		}
-		if (fontDetector.test('bodoni mt')) {
-			fontList.push('bodoni mt');
-		}
-		if (fontDetector.test('bodoni mt black')) {
-			fontList.push('bodoni mt black');
-		}
-		if (fontDetector.test('bodoni mt condensed')) {
-			fontList.push('bodoni mt condensed');
-		}
-		if (fontDetector.test('bodoni mt poster compressed')) {
-			fontList.push('bodoni mt poster compressed');
-		}
-		if (fontDetector.test('book antiqua')) {
-			fontList.push('book antiqua');
-		}
-		if (fontDetector.test('bookman')) {
-			fontList.push('bookman');
-		}
-		if (fontDetector.test('bookman old style')) {
-			fontList.push('bookman old style');
-		}
-		if (fontDetector.test('bradley hand itc')) {
-			fontList.push('bradley hand itc');
-		}
-		if (fontDetector.test('braggadocio')) {
-			fontList.push('braggadocio');
-		}
-		if (fontDetector.test('britannic bold')) {
-			fontList.push('britannic bold');
-		}
-		if (fontDetector.test('broadway')) {
-			fontList.push('broadway');
-		}
-		if (fontDetector.test('broadway bt')) {
-			fontList.push('broadway bt');
-		}
-		if (fontDetector.test('browallia new')) {
-			fontList.push('browallia new');
-		}
-		if (fontDetector.test('browalliaupc')) {
-			fontList.push('browalliaupc');
-		}
-		if (fontDetector.test('brush script mt')) {
-			fontList.push('brush script mt');
-		}
-		if (fontDetector.test('budhand')) {
-			fontList.push('budhand');
-		}
-		if (fontDetector.test('caflisch script pro')) {
-			fontList.push('caflisch script pro');
-		}
-		if (fontDetector.test('calibri')) {
-			fontList.push('calibri');
-		}
-		if (fontDetector.test('californian fb')) {
-			fontList.push('californian fb');
-		}
-		if (fontDetector.test('calisto mt')) {
-			fontList.push('calisto mt');
-		}
-		if (fontDetector.test('calligraph421 bt')) {
-			fontList.push('calligraph421 bt');
-		}
-		if (fontDetector.test('cambria')) {
-			fontList.push('cambria');
-		}
-		if (fontDetector.test('cambria math')) {
-			fontList.push('cambria math');
-		}
-		if (fontDetector.test('campbell')) {
-			fontList.push('campbell');
-		}
-		if (fontDetector.test('candara')) {
-			fontList.push('candara');
-		}
-		if (fontDetector.test('capitals')) {
-			fontList.push('capitals');
-		}
-		if (fontDetector.test('caslon')) {
-			fontList.push('caslon');
-		}
-		if (fontDetector.test('castellar')) {
-			fontList.push('castellar');
-		}
-		if (fontDetector.test('casual')) {
-			fontList.push('casual');
-		}
-		if (fontDetector.test('cataneo bt')) {
-			fontList.push('cataneo bt');
-		}
-		if (fontDetector.test('centaur')) {
-			fontList.push('centaur');
-		}
-		if (fontDetector.test('century gothic')) {
-			fontList.push('century gothic');
-		}
-		if (fontDetector.test('century schoolbook')) {
-			fontList.push('century schoolbook');
-		}
-		if (fontDetector.test('century schoolbook l')) {
-			fontList.push('century schoolbook l');
-		}
-		if (fontDetector.test('cg omega')) {
-			fontList.push('cg omega');
-		}
-		if (fontDetector.test('cg times')) {
-			fontList.push('cg times');
-		}
-		if (fontDetector.test('chalkduster')) {
-			fontList.push('chalkduster');
-		}
-		if (fontDetector.test('champignon')) {
-			fontList.push('champignon');
-		}
-		if (fontDetector.test('charcoal')) {
-			fontList.push('charcoal');
-		}
-		if (fontDetector.test('charter')) {
-			fontList.push('charter');
-		}
-		if (fontDetector.test('chasm')) {
-			fontList.push('chasm');
-		}
-		if (fontDetector.test('chicago')) {
-			fontList.push('chicago');
-		}
-		if (fontDetector.test('chick')) {
-			fontList.push('chick');
-		}
-		if (fontDetector.test('chiller')) {
-			fontList.push('chiller');
-		}
-		if (fontDetector.test('clarendon')) {
-			fontList.push('clarendon');
-		}
-		if (fontDetector.test('clarendon condensed')) {
-			fontList.push('clarendon condensed');
-		}
-		if (fontDetector.test('clarendon extended')) {
-			fontList.push('clarendon extended');
-		}
-		if (fontDetector.test('clearlyu')) {
-			fontList.push('clearlyu');
-		}
-		if (fontDetector.test('colonna mt')) {
-			fontList.push('colonna mt');
-		}
-		if (fontDetector.test('comic sans ms')) {
-			fontList.push('comic sans ms');
-		}
-		if (fontDetector.test('commercialscript bt')) {
-			fontList.push('commercialscript bt');
-		}
-		if (fontDetector.test('consolas')) {
-			fontList.push('consolas');
-		}
-		if (fontDetector.test('constantia')) {
-			fontList.push('constantia');
-		}
-		if (fontDetector.test('copperplate')) {
-			fontList.push('copperplate');
-		}
-		if (fontDetector.test('copperplate gothic bold')) {
-			fontList.push('copperplate gothic bold');
-		}
-		if (fontDetector.test('copperplate gothic ligh')) {
-			fontList.push('copperplate gothic ligh');
-		}
-		if (fontDetector.test('coolsville')) {
-			fontList.push('coolsville');
-		}
-		if (fontDetector.test('cooper black')) {
-			fontList.push('cooper black');
-		}
-		if (fontDetector.test('corbel')) {
-			fontList.push('corbel');
-		}
-		if (fontDetector.test('cordia new')) {
-			fontList.push('cordia new');
-		}
-		if (fontDetector.test('cordiaupc')) {
-			fontList.push('cordiaupc');
-		}
-		if (fontDetector.test('coronet')) {
-			fontList.push('coronet');
-		}
-		if (fontDetector.test('courier')) {
-			fontList.push('courier');
-		}
-		if (fontDetector.test('courier new')) {
-			fontList.push('courier new');
-		}
-		if (fontDetector.test('courier new baltic')) {
-			fontList.push('courier new baltic');
-		}
-		if (fontDetector.test('courier new ce')) {
-			fontList.push('courier new ce');
-		}
-		if (fontDetector.test('courier new cyr')) {
-			fontList.push('courier new cyr');
-		}
-		if (fontDetector.test('courier new greek')) {
-			fontList.push('courier new greek');
-		}
-		if (fontDetector.test('courier new tur')) {
-			fontList.push('courier new tur');
-		}
-		if (fontDetector.test('courierps')) {
-			fontList.push('courierps');
-		}
-		if (fontDetector.test('croobie')) {
-			fontList.push('croobie');
-		}
-		if (fontDetector.test('curlz mt')) {
-			fontList.push('curlz mt');
-		}
-		if (fontDetector.test('cursive')) {
-			fontList.push('cursive');
-		}
-		if (fontDetector.test('dfkai-sb')) {
-			fontList.push('dfkai-sb');
-		}
-		if (fontDetector.test('daunpenh')) {
-			fontList.push('daunpenh');
-		}
-		if (fontDetector.test('david')) {
-			fontList.push('david');
-		}
-		if (fontDetector.test('dayton')) {
-			fontList.push('dayton');
-		}
-		if (fontDetector.test('decotype naskh')) {
-			fontList.push('decotype naskh');
-		}
-		if (fontDetector.test('dejavu lgc sans')) {
-			fontList.push('dejavu lgc sans');
-		}
-		if (fontDetector.test('dejavu lgc sans condensed')) {
-			fontList.push('dejavu lgc sans condensed');
-		}
-		if (fontDetector.test('dejavu lgc sans light')) {
-			fontList.push('dejavu lgc sans light');
-		}
-		if (fontDetector.test('dejavu lgc sans mono')) {
-			fontList.push('dejavu lgc sans mono');
-		}
-		if (fontDetector.test('dejavu lgc serif')) {
-			fontList.push('dejavu lgc serif');
-		}
-		if (fontDetector.test('dejavu lgc serif condensed')) {
-			fontList.push('dejavu lgc serif condensed');
-		}
-		if (fontDetector.test('dejavu sans')) {
-			fontList.push('dejavu sans');
-		}
-		if (fontDetector.test('dejavu sans condensed')) {
-			fontList.push('dejavu sans condensed');
-		}
-		if (fontDetector.test('dejavu sans extra light')) {
-			fontList.push('dejavu sans extra light');
-		}
-		if (fontDetector.test('dejavu sans light')) {
-			fontList.push('dejavu sans light');
-		}
-		if (fontDetector.test('dejavu sans mono')) {
-			fontList.push('dejavu sans mono');
-		}
-		if (fontDetector.test('dejavu serif')) {
-			fontList.push('dejavu serif');
-		}
-		if (fontDetector.test('dejavu serif condensed')) {
-			fontList.push('dejavu serif condensed');
-		}
-		if (fontDetector.test('desdemona')) {
-			fontList.push('desdemona');
-		}
-		if (fontDetector.test('didot')) {
-			fontList.push('didot');
-		}
-		if (fontDetector.test('dilleniaupc')) {
-			fontList.push('dilleniaupc');
-		}
-		if (fontDetector.test('dokchampa')) {
-			fontList.push('dokchampa');
-		}
-		if (fontDetector.test('dombold bt')) {
-			fontList.push('dombold bt');
-		}
-		if (fontDetector.test('domestic manners')) {
-			fontList.push('domestic manners');
-		}
-		if (fontDetector.test('dotum')) {
-			fontList.push('dotum');
-		}
-		if (fontDetector.test('dotumche')) {
-			fontList.push('dotumche');
-		}
-		if (fontDetector.test('dustismo')) {
-			fontList.push('dustismo');
-		}
-		if (fontDetector.test('edwardian script itc')) {
-			fontList.push('edwardian script itc');
-		}
-		if (fontDetector.test('electron')) {
-			fontList.push('electron');
-		}
-		if (fontDetector.test('engravers mt')) {
-			fontList.push('engravers mt');
-		}
-		if (fontDetector.test('eras bold itc')) {
-			fontList.push('eras bold itc');
-		}
-		if (fontDetector.test('eras demi itc')) {
-			fontList.push('eras demi itc');
-		}
-		if (fontDetector.test('eras light itc')) {
-			fontList.push('eras light itc');
-		}
-		if (fontDetector.test('eras medium itc')) {
-			fontList.push('eras medium itc');
-		}
-		if (fontDetector.test('estrangelo edessa')) {
-			fontList.push('estrangelo edessa');
-		}
-		if (fontDetector.test('eucrosiaupc')) {
-			fontList.push('eucrosiaupc');
-		}
-		if (fontDetector.test('euphemia')) {
-			fontList.push('euphemia');
-		}
-		if (fontDetector.test('eurostile')) {
-			fontList.push('eurostile');
-		}
-		if (fontDetector.test('fangsong')) {
-			fontList.push('fangsong');
-		}
-		if (fontDetector.test('fantasy')) {
-			fontList.push('fantasy');
-		}
-		if (fontDetector.test('fat')) {
-			fontList.push('fat');
-		}
-		if (fontDetector.test('felix titling')) {
-			fontList.push('felix titling');
-		}
-		if (fontDetector.test('fine hand')) {
-			fontList.push('fine hand');
-		}
-		if (fontDetector.test('firsthome')) {
-			fontList.push('firsthome');
-		}
-		if (fontDetector.test('fixed')) {
-			fontList.push('fixed');
-		}
-		if (fontDetector.test('flat brush')) {
-			fontList.push('flat brush');
-		}
-		if (fontDetector.test('footlight mt light')) {
-			fontList.push('footlight mt light');
-		}
-		if (fontDetector.test('forte')) {
-			fontList.push('forte');
-		}
-		if (fontDetector.test('frankruehl')) {
-			fontList.push('frankruehl');
-		}
-		if (fontDetector.test('franklin gothic book')) {
-			fontList.push('franklin gothic book');
-		}
-		if (fontDetector.test('franklin gothic demi')) {
-			fontList.push('franklin gothic demi');
-		}
-		if (fontDetector.test('franklin gothic demi cond')) {
-			fontList.push('franklin gothic demi cond');
-		}
-		if (fontDetector.test('franklin gothic heavy')) {
-			fontList.push('franklin gothic heavy');
-		}
-		if (fontDetector.test('franklin gothic medium')) {
-			fontList.push('franklin gothic medium');
-		}
-		if (fontDetector.test('franklin gothic medium cond')) {
-			fontList.push('franklin gothic medium cond');
-		}
-		if (fontDetector.test('freemono')) {
-			fontList.push('freemono');
-		}
-		if (fontDetector.test('freesans')) {
-			fontList.push('freesans');
-		}
-		if (fontDetector.test('freeserif')) {
-			fontList.push('freeserif');
-		}
-		if (fontDetector.test('freesiaupc')) {
-			fontList.push('freesiaupc');
-		}
-		if (fontDetector.test('freestyle script')) {
-			fontList.push('freestyle script');
-		}
-		if (fontDetector.test('french script mt')) {
-			fontList.push('french script mt');
-		}
-		if (fontDetector.test('freshbot')) {
-			fontList.push('freshbot');
-		}
-		if (fontDetector.test('frosty')) {
-			fontList.push('frosty');
-		}
-		if (fontDetector.test('frutiger')) {
-			fontList.push('frutiger');
-		}
-		if (fontDetector.test('frutiger linotype')) {
-			fontList.push('frutiger linotype');
-		}
-		if (fontDetector.test('frutiger45-light')) {
-			fontList.push('frutiger45-light');
-		}
-		if (fontDetector.test('frutiger46-light')) {
-			fontList.push('frutiger46-light');
-		}
-		if (fontDetector.test('frutiger47-condensedlight')) {
-			fontList.push('frutiger47-condensedlight');
-		}
-		if (fontDetector.test('frutiger55roman')) {
-			fontList.push('frutiger55roman');
-		}
-		if (fontDetector.test('frutiger56')) {
-			fontList.push('frutiger56');
-		}
-		if (fontDetector.test('frutiger57-condensed')) {
-			fontList.push('frutiger57-condensed');
-		}
-		if (fontDetector.test('frutiger65')) {
-			fontList.push('frutiger65');
-		}
-		if (fontDetector.test('frutiger66')) {
-			fontList.push('frutiger66');
-		}
-		if (fontDetector.test('frutiger67-condensed')) {
-			fontList.push('frutiger67-condensed');
-		}
-		if (fontDetector.test('frutiger75-black')) {
-			fontList.push('frutiger75-black');
-		}
-		if (fontDetector.test('frutiger76-black')) {
-			fontList.push('frutiger76-black');
-		}
-		if (fontDetector.test('frutiger77-condensedblack')) {
-			fontList.push('frutiger77-condensedblack');
-		}
-		if (fontDetector.test('frutiger87-condensedextrablack')) {
-			fontList.push('frutiger87-condensedextrablack');
-		}
-		if (fontDetector.test('frutiger95-ultrablack')) {
-			fontList.push('frutiger95-ultrablack');
-		}
-		if (fontDetector.test('futura')) {
-			fontList.push('futura');
-		}
-		if (fontDetector.test('futurablack bt')) {
-			fontList.push('futurablack bt');
-		}
-		if (fontDetector.test('futuralight bt')) {
-			fontList.push('futuralight bt');
-		}
-		if (fontDetector.test('gadget')) {
-			fontList.push('gadget');
-		}
-		if (fontDetector.test('garamond')) {
-			fontList.push('garamond');
-		}
-		if (fontDetector.test('gautami')) {
-			fontList.push('gautami');
-		}
-		if (fontDetector.test('gaze')) {
-			fontList.push('gaze');
-		}
-		if (fontDetector.test('geneva')) {
-			fontList.push('geneva');
-		}
-		if (fontDetector.test('genuine')) {
-			fontList.push('genuine');
-		}
-		if (fontDetector.test('georgia')) {
-			fontList.push('georgia');
-		}
-		if (fontDetector.test('georgia ref')) {
-			fontList.push('georgia ref');
-		}
-		if (fontDetector.test('geotype tt')) {
-			fontList.push('geotype tt');
-		}
-		if (fontDetector.test('gigi')) {
-			fontList.push('gigi');
-		}
-		if (fontDetector.test('gill sans')) {
-			fontList.push('gill sans');
-		}
-		if (fontDetector.test('gill sans mt')) {
-			fontList.push('gill sans mt');
-		}
-		if (fontDetector.test('gill sans mt condensed')) {
-			fontList.push('gill sans mt condensed');
-		}
-		if (fontDetector.test('gill sans mt ext condensed bold')) {
-			fontList.push('gill sans mt ext condensed bold');
-		}
-		if (fontDetector.test('gill sans ultra bold')) {
-			fontList.push('gill sans ultra bold');
-		}
-		if (fontDetector.test('gill sans ultra bold condensed')) {
-			fontList.push('gill sans ultra bold condensed');
-		}
-		if (fontDetector.test('gisha')) {
-			fontList.push('gisha');
-		}
-		if (fontDetector.test('gloogun')) {
-			fontList.push('gloogun');
-		}
-		if (fontDetector.test('gloucester mt extra condensed')) {
-			fontList.push('gloucester mt extra condensed');
-		}
-		if (fontDetector.test('goudy old style')) {
-			fontList.push('goudy old style');
-		}
-		if (fontDetector.test('goudy stout')) {
-			fontList.push('goudy stout');
-		}
-		if (fontDetector.test('gulim')) {
-			fontList.push('gulim');
-		}
-		if (fontDetector.test('gulimche')) {
-			fontList.push('gulimche');
-		}
-		if (fontDetector.test('gungseo')) {
-			fontList.push('gungseo');
-		}
-		if (fontDetector.test('gungsuh')) {
-			fontList.push('gungsuh');
-		}
-		if (fontDetector.test('gungsuhche')) {
-			fontList.push('gungsuhche');
-		}
-		if (fontDetector.test('haettenschweiler')) {
-			fontList.push('haettenschweiler');
-		}
-		if (fontDetector.test('harlow solid italic')) {
-			fontList.push('harlow solid italic');
-		}
-		if (fontDetector.test('harrington')) {
-			fontList.push('harrington');
-		}
-		if (fontDetector.test('heiti sc')) {
-			fontList.push('heiti sc');
-		}
-		if (fontDetector.test('heiti tc')) {
-			fontList.push('heiti tc');
-		}
-		if (fontDetector.test('helterskelter')) {
-			fontList.push('helterskelter');
-		}
-		if (fontDetector.test('helvetica')) {
-			fontList.push('helvetica');
-		}
-		if (fontDetector.test('helvetica narrow')) {
-			fontList.push('helvetica narrow');
-		}
-		if (fontDetector.test('helvetica neue')) {
-			fontList.push('helvetica neue');
-		}
-		if (fontDetector.test('helveticaneue')) {
-			fontList.push('helveticaneue');
-		}
-		if (fontDetector.test('herculanum')) {
-			fontList.push('herculanum');
-		}
-		if (fontDetector.test('herman')) {
-			fontList.push('herman');
-		}
-		if (fontDetector.test('high tower text')) {
-			fontList.push('high tower text');
-		}
-		if (fontDetector.test('highlight let')) {
-			fontList.push('highlight let');
-		}
-		if (fontDetector.test('hiragino kaku gothic pron')) {
-			fontList.push('hiragino kaku gothic pron');
-		}
-		if (fontDetector.test('hiragino kaku gothic stdn')) {
-			fontList.push('hiragino kaku gothic stdn');
-		}
-		if (fontDetector.test('hiragino maru gothic pron')) {
-			fontList.push('hiragino maru gothic pron');
-		}
-		if (fontDetector.test('hiragino mincho pron')) {
-			fontList.push('hiragino mincho pron');
-		}
-		if (fontDetector.test('hoefler text')) {
-			fontList.push('hoefler text');
-		}
-		if (fontDetector.test('impact')) {
-			fontList.push('impact');
-		}
-		if (fontDetector.test('imprint mt shadow')) {
-			fontList.push('imprint mt shadow');
-		}
-		if (fontDetector.test('informal roman')) {
-			fontList.push('informal roman');
-		}
-		if (fontDetector.test('interstate')) {
-			fontList.push('interstate');
-		}
-		if (fontDetector.test('irisupc')) {
-			fontList.push('irisupc');
-		}
-		if (fontDetector.test('isabella')) {
-			fontList.push('isabella');
-		}
-		if (fontDetector.test('iskoola pota')) {
-			fontList.push('iskoola pota');
-		}
-		if (fontDetector.test('itc avant garde gothic')) {
-			fontList.push('itc avant garde gothic');
-		}
-		if (fontDetector.test('itc avant garde gothic demi')) {
-			fontList.push('itc avant garde gothic demi');
-		}
-		if (fontDetector.test('itc bookman demi')) {
-			fontList.push('itc bookman demi');
-		}
-		if (fontDetector.test('itc bookman light')) {
-			fontList.push('itc bookman light');
-		}
-		if (fontDetector.test('itc century')) {
-			fontList.push('itc century');
-		}
-		if (fontDetector.test('itc franklin gothic')) {
-			fontList.push('itc franklin gothic');
-		}
-		if (fontDetector.test('itc zapf chancery')) {
-			fontList.push('itc zapf chancery');
-		}
-		if (fontDetector.test('itc zapf dingbats')) {
-			fontList.push('itc zapf dingbats');
-		}
-		if (fontDetector.test('jasmineupc')) {
-			fontList.push('jasmineupc');
-		}
-		if (fontDetector.test('jenkins')) {
-			fontList.push('jenkins');
-		}
-		if (fontDetector.test('jester')) {
-			fontList.push('jester');
-		}
-		if (fontDetector.test('joan')) {
-			fontList.push('joan');
-		}
-		if (fontDetector.test('john handy let')) {
-			fontList.push('john handy let');
-		}
-		if (fontDetector.test('jokerman')) {
-			fontList.push('jokerman');
-		}
-		if (fontDetector.test('jokerman let')) {
-			fontList.push('jokerman let');
-		}
-		if (fontDetector.test('jokewood')) {
-			fontList.push('jokewood');
-		}
-		if (fontDetector.test('juice itc')) {
-			fontList.push('juice itc');
-		}
-		if (fontDetector.test('junkyard')) {
-			fontList.push('junkyard');
-		}
-		if (fontDetector.test('kabel ult bt')) {
-			fontList.push('kabel ult bt');
-		}
-		if (fontDetector.test('kailasa')) {
-			fontList.push('kailasa');
-		}
-		if (fontDetector.test('kaiti')) {
-			fontList.push('kaiti');
-		}
-		if (fontDetector.test('kalinga')) {
-			fontList.push('kalinga');
-		}
-		if (fontDetector.test('kartika')) {
-			fontList.push('kartika');
-		}
-		if (fontDetector.test('kaufmann')) {
-			fontList.push('kaufmann');
-		}
-		if (fontDetector.test('kelt')) {
-			fontList.push('kelt');
-		}
-		if (fontDetector.test('kids')) {
-			fontList.push('kids');
-		}
-		if (fontDetector.test('kino mt')) {
-			fontList.push('kino mt');
-		}
-		if (fontDetector.test('kodchiangupc')) {
-			fontList.push('kodchiangupc');
-		}
-		if (fontDetector.test('kokonor')) {
-			fontList.push('kokonor');
-		}
-		if (fontDetector.test('kristen itc')) {
-			fontList.push('kristen itc');
-		}
-		if (fontDetector.test('kunstler script')) {
-			fontList.push('kunstler script');
-		}
-		if (fontDetector.test('la bamba let')) {
-			fontList.push('la bamba let');
-		}
-		if (fontDetector.test('latha')) {
-			fontList.push('latha');
-		}
-		if (fontDetector.test('leelawadee')) {
-			fontList.push('leelawadee');
-		}
-		if (fontDetector.test('letter gothic')) {
-			fontList.push('letter gothic');
-		}
-		if (fontDetector.test('levenim mt')) {
-			fontList.push('levenim mt');
-		}
-		if (fontDetector.test('liberation mono')) {
-			fontList.push('liberation mono');
-		}
-		if (fontDetector.test('liberation sans')) {
-			fontList.push('liberation sans');
-		}
-		if (fontDetector.test('liberation serif')) {
-			fontList.push('liberation serif');
-		}
-		if (fontDetector.test('lilyupc')) {
-			fontList.push('lilyupc');
-		}
-		if (fontDetector.test('linux libertine')) {
-			fontList.push('linux libertine');
-		}
-		if (fontDetector.test('linux libertine c')) {
-			fontList.push('linux libertine c');
-		}
-		if (fontDetector.test('lithograph')) {
-			fontList.push('lithograph');
-		}
-		if (fontDetector.test('lucida')) {
-			fontList.push('lucida');
-		}
-		if (fontDetector.test('lucida bright')) {
-			fontList.push('lucida bright');
-		}
-		if (fontDetector.test('lucida calligraphy')) {
-			fontList.push('lucida calligraphy');
-		}
-		if (fontDetector.test('lucida console')) {
-			fontList.push('lucida console');
-		}
-		if (fontDetector.test('lucida fax')) {
-			fontList.push('lucida fax');
-		}
-		if (fontDetector.test('lucida grande')) {
-			fontList.push('lucida grande');
-		}
-		if (fontDetector.test('lucida handwriting')) {
-			fontList.push('lucida handwriting');
-		}
-		if (fontDetector.test('lucida sans')) {
-			fontList.push('lucida sans');
-		}
-		if (fontDetector.test('lucida sans typewriter')) {
-			fontList.push('lucida sans typewriter');
-		}
-		if (fontDetector.test('lucida sans unicode')) {
-			fontList.push('lucida sans unicode');
-		}
-		if (fontDetector.test('lucida typewriter')) {
-			fontList.push('lucida typewriter');
-		}
-		if (fontDetector.test('lucidabright')) {
-			fontList.push('lucidabright');
-		}
-		if (fontDetector.test('luxi mono')) {
-			fontList.push('luxi mono');
-		}
-		if (fontDetector.test('luxi sans')) {
-			fontList.push('luxi sans');
-		}
-		if (fontDetector.test('luxi serif')) {
-			fontList.push('luxi serif');
-		}
-		if (fontDetector.test('magneto')) {
-			fontList.push('magneto');
-		}
-		if (fontDetector.test('maiandra gd')) {
-			fontList.push('maiandra gd');
-		}
-		if (fontDetector.test('malgun gothic')) {
-			fontList.push('malgun gothic');
-		}
-		if (fontDetector.test('mangal')) {
-			fontList.push('mangal');
-		}
-		if (fontDetector.test('map symbols')) {
-			fontList.push('map symbols');
-		}
-		if (fontDetector.test('marigold')) {
-			fontList.push('marigold');
-		}
-		if (fontDetector.test('marked fool')) {
-			fontList.push('marked fool');
-		}
-		if (fontDetector.test('marker felt')) {
-			fontList.push('marker felt');
-		}
-		if (fontDetector.test('marketpro')) {
-			fontList.push('marketpro');
-		}
-		if (fontDetector.test('marlett')) {
-			fontList.push('marlett');
-		}
-		if (fontDetector.test('matteroffact')) {
-			fontList.push('matteroffact');
-		}
-		if (fontDetector.test('matisse itc')) {
-			fontList.push('matisse itc');
-		}
-		if (fontDetector.test('matura mt script capitals')) {
-			fontList.push('matura mt script capitals');
-		}
-		if (fontDetector.test('mead bold')) {
-			fontList.push('mead bold');
-		}
-		if (fontDetector.test('meiryo')) {
-			fontList.push('meiryo');
-		}
-		if (fontDetector.test('meiryo ui')) {
-			fontList.push('meiryo ui');
-		}
-		if (fontDetector.test('mekanik let')) {
-			fontList.push('mekanik let');
-		}
-		if (fontDetector.test('menlo')) {
-			fontList.push('menlo');
-		}
-		if (fontDetector.test('mercurius script mt bold')) {
-			fontList.push('mercurius script mt bold');
-		}
-		if (fontDetector.test('metal')) {
-			fontList.push('metal');
-		}
-		if (fontDetector.test('mgopen canonica')) {
-			fontList.push('mgopen canonica');
-		}
-		if (fontDetector.test('mgopen cosmetica')) {
-			fontList.push('mgopen cosmetica');
-		}
-		if (fontDetector.test('mgopen modata')) {
-			fontList.push('mgopen modata');
-		}
-		if (fontDetector.test('mgopen moderna')) {
-			fontList.push('mgopen moderna');
-		}
-		if (fontDetector.test('microsoft himalaya')) {
-			fontList.push('microsoft himalaya');
-		}
-		if (fontDetector.test('microsoft jhenghei')) {
-			fontList.push('microsoft jhenghei');
-		}
-		if (fontDetector.test('microsoft sans serif')) {
-			fontList.push('microsoft sans serif');
-		}
-		if (fontDetector.test('microsoft uighur')) {
-			fontList.push('microsoft uighur');
-		}
-		if (fontDetector.test('microsoft yahei')) {
-			fontList.push('microsoft yahei');
-		}
-		if (fontDetector.test('microsoft yi baiti')) {
-			fontList.push('microsoft yi baiti');
-		}
-		if (fontDetector.test('milano let')) {
-			fontList.push('milano let');
-		}
-		if (fontDetector.test('mingliu')) {
-			fontList.push('mingliu');
-		}
-		if (fontDetector.test('mingliu-extb')) {
-			fontList.push('mingliu-extb');
-		}
-		if (fontDetector.test('mingliu_hkscs')) {
-			fontList.push('mingliu_hkscs');
-		}
-		if (fontDetector.test('mingliu_hkscs-extb')) {
-			fontList.push('mingliu_hkscs-extb');
-		}
-		if (fontDetector.test('minion std')) {
-			fontList.push('minion std');
-		}
-		if (fontDetector.test('minion web')) {
-			fontList.push('minion web');
-		}
-		if (fontDetector.test('miriam')) {
-			fontList.push('miriam');
-		}
-		if (fontDetector.test('miriam fixed')) {
-			fontList.push('miriam fixed');
-		}
-		if (fontDetector.test('misterearl bt')) {
-			fontList.push('misterearl bt');
-		}
-		if (fontDetector.test('mistral')) {
-			fontList.push('mistral');
-		}
-		if (fontDetector.test('monaco')) {
-			fontList.push('monaco');
-		}
-		if (fontDetector.test('mongolian baiti')) {
-			fontList.push('mongolian baiti');
-		}
-		if (fontDetector.test('monospace')) {
-			fontList.push('monospace');
-		}
-		if (fontDetector.test('monotype')) {
-			fontList.push('monotype');
-		}
-		if (fontDetector.test('monotype corsiva')) {
-			fontList.push('monotype corsiva');
-		}
-		if (fontDetector.test('monotype sorts')) {
-			fontList.push('monotype sorts');
-		}
-		if (fontDetector.test('moolboran')) {
-			fontList.push('moolboran');
-		}
-		if (fontDetector.test('ms gothic')) {
-			fontList.push('ms gothic');
-		}
-		if (fontDetector.test('ms linedraw')) {
-			fontList.push('ms linedraw');
-		}
-		if (fontDetector.test('ms mincho')) {
-			fontList.push('ms mincho');
-		}
-		if (fontDetector.test('ms pgothic')) {
-			fontList.push('ms pgothic');
-		}
-		if (fontDetector.test('ms pmincho')) {
-			fontList.push('ms pmincho');
-		}
-		if (fontDetector.test('ms reference sans serif')) {
-			fontList.push('ms reference sans serif');
-		}
-		if (fontDetector.test('ms reference serif')) {
-			fontList.push('ms reference serif');
-		}
-		if (fontDetector.test('ms sans serif')) {
-			fontList.push('ms sans serif');
-		}
-		if (fontDetector.test('ms serif')) {
-			fontList.push('ms serif');
-		}
-		if (fontDetector.test('ms ui gothic')) {
-			fontList.push('ms ui gothic');
-		}
-		if (fontDetector.test('mv boli')) {
-			fontList.push('mv boli');
-		}
-		if (fontDetector.test('narkisim')) {
-			fontList.push('narkisim');
-		}
-		if (fontDetector.test('new century schoolbook')) {
-			fontList.push('new century schoolbook');
-		}
-		if (fontDetector.test('new york')) {
-			fontList.push('new york');
-		}
-		if (fontDetector.test('news gothic mt')) {
-			fontList.push('news gothic mt');
-		}
-		if (fontDetector.test('niagara engraved')) {
-			fontList.push('niagara engraved');
-		}
-		if (fontDetector.test('niagara solid')) {
-			fontList.push('niagara solid');
-		}
-		if (fontDetector.test('nice')) {
-			fontList.push('nice');
-		}
-		if (fontDetector.test('nimbus mono l')) {
-			fontList.push('nimbus mono l');
-		}
-		if (fontDetector.test('nimbus roman no9 l')) {
-			fontList.push('nimbus roman no9 l');
-		}
-		if (fontDetector.test('nimbus sans l')) {
-			fontList.push('nimbus sans l');
-		}
-		if (fontDetector.test('nimbus sans l condensed')) {
-			fontList.push('nimbus sans l condensed');
-		}
-		if (fontDetector.test('nsimsun')) {
-			fontList.push('nsimsun');
-		}
-		if (fontDetector.test('nyala')) {
-			fontList.push('nyala');
-		}
-		if (fontDetector.test('ocr a extended')) {
-			fontList.push('ocr a extended');
-		}
-		if (fontDetector.test('ocrb')) {
-			fontList.push('ocrb');
-		}
-		if (fontDetector.test('odessa let')) {
-			fontList.push('odessa let');
-		}
-		if (fontDetector.test('old english text mt')) {
-			fontList.push('old english text mt');
-		}
-		if (fontDetector.test('olddreadfulno7 bt')) {
-			fontList.push('olddreadfulno7 bt');
-		}
-		if (fontDetector.test('one stroke script let')) {
-			fontList.push('one stroke script let');
-		}
-		if (fontDetector.test('onyx')) {
-			fontList.push('onyx');
-		}
-		if (fontDetector.test('opensymbol')) {
-			fontList.push('opensymbol');
-		}
-		if (fontDetector.test('optima')) {
-			fontList.push('optima');
-		}
-		if (fontDetector.test('orange let')) {
-			fontList.push('orange let');
-		}
-		if (fontDetector.test('palace script mt')) {
-			fontList.push('palace script mt');
-		}
-		if (fontDetector.test('palatino')) {
-			fontList.push('palatino');
-		}
-		if (fontDetector.test('palatino linotype')) {
-			fontList.push('palatino linotype');
-		}
-		if (fontDetector.test('papyrus')) {
-			fontList.push('papyrus');
-		}
-		if (fontDetector.test('parkavenue bt')) {
-			fontList.push('parkavenue bt');
-		}
-		if (fontDetector.test('penguin attack')) {
-			fontList.push('penguin attack');
-		}
-		if (fontDetector.test('pepita mt')) {
-			fontList.push('pepita mt');
-		}
-		if (fontDetector.test('perpetua')) {
-			fontList.push('perpetua');
-		}
-		if (fontDetector.test('perpetua titling mt')) {
-			fontList.push('perpetua titling mt');
-		}
-		if (fontDetector.test('placard condensed')) {
-			fontList.push('placard condensed');
-		}
-		if (fontDetector.test('plantagenet cherokee')) {
-			fontList.push('plantagenet cherokee');
-		}
-		if (fontDetector.test('playbill')) {
-			fontList.push('playbill');
-		}
-		if (fontDetector.test('pmingliu')) {
-			fontList.push('pmingliu');
-		}
-		if (fontDetector.test('pmingliu-extb')) {
-			fontList.push('pmingliu-extb');
-		}
-		if (fontDetector.test('porcelain')) {
-			fontList.push('porcelain');
-		}
-		if (fontDetector.test('poornut')) {
-			fontList.push('poornut');
-		}
-		if (fontDetector.test('pristina')) {
-			fontList.push('pristina');
-		}
-		if (fontDetector.test('pump demi bold let')) {
-			fontList.push('pump demi bold let');
-		}
-		if (fontDetector.test('puppylike')) {
-			fontList.push('puppylike');
-		}
-		if (fontDetector.test('pussycat')) {
-			fontList.push('pussycat');
-		}
-		if (fontDetector.test('quixley let')) {
-			fontList.push('quixley let');
-		}
-		if (fontDetector.test('raavi')) {
-			fontList.push('raavi');
-		}
-		if (fontDetector.test('rage italic')) {
-			fontList.push('rage italic');
-		}
-		if (fontDetector.test('rage italic let')) {
-			fontList.push('rage italic let');
-		}
-		if (fontDetector.test('ravie')) {
-			fontList.push('ravie');
-		}
-		if (fontDetector.test('rockwell')) {
-			fontList.push('rockwell');
-		}
-		if (fontDetector.test('rockwell condensed')) {
-			fontList.push('rockwell condensed');
-		}
-		if (fontDetector.test('rockwell extra bold')) {
-			fontList.push('rockwell extra bold');
-		}
-		if (fontDetector.test('rod')) {
-			fontList.push('rod');
-		}
-		if (fontDetector.test('roland')) {
-			fontList.push('roland');
-		}
-		if (fontDetector.test('rotissemisans')) {
-			fontList.push('rotissemisans');
-		}
-		if (fontDetector.test('ruach let')) {
-			fontList.push('ruach let');
-		}
-		if (fontDetector.test('runic mt condensed')) {
-			fontList.push('runic mt condensed');
-		}
-		if (fontDetector.test('sand')) {
-			fontList.push('sand');
-		}
-		if (fontDetector.test('sans-serif')) {
-			fontList.push('sans-serif');
-		}
-		if (fontDetector.test('script mt bold')) {
-			fontList.push('script mt bold');
-		}
-		if (fontDetector.test('scripts')) {
-			fontList.push('scripts');
-		}
-		if (fontDetector.test('scruff let')) {
-			fontList.push('scruff let');
-		}
-		if (fontDetector.test('segoe print')) {
-			fontList.push('segoe print');
-		}
-		if (fontDetector.test('segoe script')) {
-			fontList.push('segoe script');
-		}
-		if (fontDetector.test('segoe ui')) {
-			fontList.push('segoe ui');
-		}
-		if (fontDetector.test('serif')) {
-			fontList.push('serif');
-		}
-		if (fontDetector.test('shelley')) {
-			fontList.push('shelley');
-		}
-		if (fontDetector.test('short hand')) {
-			fontList.push('short hand');
-		}
-		if (fontDetector.test('showcard gothic')) {
-			fontList.push('showcard gothic');
-		}
-		if (fontDetector.test('shruti')) {
-			fontList.push('shruti');
-		}
-		if (fontDetector.test('signs normal')) {
-			fontList.push('signs normal');
-		}
-		if (fontDetector.test('simhei')) {
-			fontList.push('simhei');
-		}
-		if (fontDetector.test('simplex')) {
-			fontList.push('simplex');
-		}
-		if (fontDetector.test('simplified arabic')) {
-			fontList.push('simplified arabic');
-		}
-		if (fontDetector.test('simplified arabic fixed')) {
-			fontList.push('simplified arabic fixed');
-		}
-		if (fontDetector.test('simpson')) {
-			fontList.push('simpson');
-		}
-		if (fontDetector.test('simsun')) {
-			fontList.push('simsun');
-		}
-		if (fontDetector.test('simsun-extb')) {
-			fontList.push('simsun-extb');
-		}
-		if (fontDetector.test('skia')) {
-			fontList.push('skia');
-		}
-		if (fontDetector.test('snap itc')) {
-			fontList.push('snap itc');
-		}
-		if (fontDetector.test('smudger let')) {
-			fontList.push('smudger let');
-		}
-		if (fontDetector.test('square721 bt')) {
-			fontList.push('square721 bt');
-		}
-		if (fontDetector.test('staccato222 bt')) {
-			fontList.push('staccato222 bt');
-		}
-		if (fontDetector.test('stencil')) {
-			fontList.push('stencil');
-		}
-		if (fontDetector.test('stylus bt')) {
-			fontList.push('stylus bt');
-		}
-		if (fontDetector.test('superfrench')) {
-			fontList.push('superfrench');
-		}
-		if (fontDetector.test('surfer')) {
-			fontList.push('surfer');
-		}
-		if (fontDetector.test('swis721 bt')) {
-			fontList.push('swis721 bt');
-		}
-		if (fontDetector.test('swis721 blkoul bt')) {
-			fontList.push('swis721 blkoul bt');
-		}
-		if (fontDetector.test('sylfaen')) {
-			fontList.push('sylfaen');
-		}
-		if (fontDetector.test('symap')) {
-			fontList.push('symap');
-		}
-		if (fontDetector.test('symbol')) {
-			fontList.push('symbol');
-		}
-		if (fontDetector.test('symbolps')) {
-			fontList.push('symbolps');
-		}
-		if (fontDetector.test('tahoma')) {
-			fontList.push('tahoma');
-		}
-		if (fontDetector.test('technic')) {
-			fontList.push('technic');
-		}
-		if (fontDetector.test('techno')) {
-			fontList.push('techno');
-		}
-		if (fontDetector.test('tempus sans itc')) {
-			fontList.push('tempus sans itc');
-		}
-		if (fontDetector.test('terk')) {
-			fontList.push('terk');
-		}
-		if (fontDetector.test('terminal')) {
-			fontList.push('terminal');
-		}
-		if (fontDetector.test('textile')) {
-			fontList.push('textile');
-		}
-		if (fontDetector.test('times')) {
-			fontList.push('times');
-		} {
-			fontList.push('times new roman');
-		}
-		if (fontDetector.test('times new roman baltic')) {
-			fontList.push('times new roman baltic');
-		}
-		if (fontDetector.test('times new roman ce')) {
-			fontList.push('times new roman ce');
-		}
-		if (fontDetector.test('times new roman cyr')) {
-			fontList.push('times new roman cyr');
-		}
-		if (fontDetector.test('times new roman greek')) {
-			fontList.push('times new roman greek');
-		}
-		if (fontDetector.test('times new roman tur')) {
-			fontList.push('times new roman tur');
-		}
-		if (fontDetector.test('tiranti solid let')) {
-			fontList.push('tiranti solid let');
-		}
-		if (fontDetector.test('tradegothic')) {
-			fontList.push('tradegothic');
-		}
-		if (fontDetector.test('traditional arabic')) {
-			fontList.push('traditional arabic');
-		}
-		if (fontDetector.test('trebuchet ms')) {
-			fontList.push('trebuchet ms');
-		}
-		if (fontDetector.test('trendy')) {
-			fontList.push('trendy');
-		}
-		if (fontDetector.test('tunga')) {
-			fontList.push('tunga');
-		}
-		if (fontDetector.test('tw cen mt')) {
-			fontList.push('tw cen mt');
-		}
-		if (fontDetector.test('tw cen mt condensed')) {
-			fontList.push('tw cen mt condensed');
-		}
-		if (fontDetector.test('tw cen mt condensed extra bold')) {
-			fontList.push('tw cen mt condensed extra bold');
-		}
-		if (fontDetector.test('univers')) {
-			fontList.push('univers');
-		}
-		if (fontDetector.test('univers condensed')) {
-			fontList.push('univers condensed');
-		}
-		if (fontDetector.test('university roman let')) {
-			fontList.push('university roman let');
-		}
-		if (fontDetector.test('urw antiqua t')) {
-			fontList.push('urw antiqua t');
-		}
-		if (fontDetector.test('urw bookman l')) {
-			fontList.push('urw bookman l');
-		}
-		if (fontDetector.test('urw chancery l')) {
-			fontList.push('urw chancery l');
-		}
-		if (fontDetector.test('urw gothic l')) {
-			fontList.push('urw gothic l');
-		}
-		if (fontDetector.test('urw grotesk t')) {
-			fontList.push('urw grotesk t');
-		}
-		if (fontDetector.test('urw palladio l')) {
-			fontList.push('urw palladio l');
-		}
-		if (fontDetector.test('utopia')) {
-			fontList.push('utopia');
-		}
-		if (fontDetector.test('vera sans')) {
-			fontList.push('vera sans');
-		}
-		if (fontDetector.test('vera sans mono')) {
-			fontList.push('vera sans mono');
-		}
-		if (fontDetector.test('vera serif')) {
-			fontList.push('vera serif');
-		}
-		if (fontDetector.test('verdana')) {
-			fontList.push('verdana');
-		}
-		if (fontDetector.test('verdana ref')) {
-			fontList.push('verdana ref');
-		}
-		if (fontDetector.test('victorian let')) {
-			fontList.push('victorian let');
-		}
-		if (fontDetector.test('viner hand itc')) {
-			fontList.push('viner hand itc');
-		}
-		if (fontDetector.test('vineta bt')) {
-			fontList.push('vineta bt');
-		}
-		if (fontDetector.test('vivaldi')) {
-			fontList.push('vivaldi');
-		}
-		if (fontDetector.test('vivian')) {
-			fontList.push('vivian');
-		}
-		if (fontDetector.test('vladimir script')) {
-			fontList.push('vladimir script');
-		}
-		if (fontDetector.test('vrinda')) {
-			fontList.push('vrinda');
-		}
-		if (fontDetector.test('webdings')) {
-			fontList.push('webdings');
-		}
-		if (fontDetector.test('weltron urban')) {
-			fontList.push('weltron urban');
-		}
-		if (fontDetector.test('western')) {
-			fontList.push('western');
-		}
-		if (fontDetector.test('westminster')) {
-			fontList.push('westminster');
-		}
-		if (fontDetector.test('westwood let')) {
-			fontList.push('westwood let');
-		}
-		if (fontDetector.test('wide latin')) {
-			fontList.push('wide latin');
-		}
-		if (fontDetector.test('wingdings')) {
-			fontList.push('wingdings');
-		}
-		if (fontDetector.test('zapf chancery')) {
-			fontList.push('zapf chancery');
-		}
-		if (fontDetector.test('zapfellipt bt')) {
-			fontList.push('zapfellipt bt');
-		}
-		if (fontDetector.test('zapfino')) {
-			fontList.push('zapfino');
-		}
+		var testFont = function(font) {
+			if (fontDetector.test(font)) {
+				fontList.push(font);
+			}
+		}
+
+		testFont('a charming font');
+		testFont('abadi mt condensed');
+		testFont('abadi mt condensed extra bold');
+		testFont('abadi mt condensed light');
+		testFont('academy engraved let');
+		testFont('adobe fangsong std');
+		testFont('adobe garamond');
+		testFont('adobe heiti std');
+		testFont('adobe kaiti std');
+		testFont('adobe ming std');
+		testFont('adobe myungjo std');
+		testFont('adobe song std');
+		testFont('agency fb');
+		testFont('aharoni');
+		testFont('alba');
+		testFont('alba matter');
+		testFont('alba super');
+		testFont('albertus');
+		testFont('albertus extra bold');
+		testFont('albertus medium');
+		testFont('algerian');
+		testFont('amaze');
+		testFont('american typewriter');
+		testFont('andale mono');
+		testFont('andale mono ipa');
+		testFont('andalus');
+		testFont('andy');
+		testFont('angsana new');
+		testFont('angsanaupc');
+		testFont('antique olive');
+		testFont('antique olive compact');
+		testFont('apple casual');
+		testFont('apple chancery');
+		testFont('arabic transparent');
+		testFont('arabic typesetting');
+		testFont('arial');
+		testFont('arial baltic');
+		testFont('arial black');
+		testFont('arial ce');
+		testFont('arial cyr');
+		testFont('arial greek');
+		testFont('arial narrow');
+		testFont('arial rounded mt bold');
+		testFont('arial tur');
+		testFont('arial unicode ms');
+		testFont('avant garde');
+		testFont('avenir');
+		testFont('baby kruffy');
+		testFont('balker');
+		testFont('balthazar');
+		testFont('bankgothic lt bt');
+		testFont('bart');
+		testFont('base');
+		testFont('baskerville');
+		testFont('baskerville old face');
+		testFont('batang');
+		testFont('batangche');
+		testFont('bauhaus');
+		testFont('beesknees itc');
+		testFont('bell mt');
+		testFont('belwe');
+		testFont('bembo');
+		testFont('berlin sans fb');
+		testFont('berlin sans fb demi');
+		testFont('bernard mt condensed');
+		testFont('bernhard modern std');
+		testFont('berthold akzidenz grotesk be');
+		testFont('bickley script');
+		testFont('big caslon');
+		testFont('bimini');
+		testFont('bitstream charter');
+		testFont('bitstream vera sans');
+		testFont('bitstream vera sans mono');
+		testFont('bitstream vera serif');
+		testFont('blackadder itc');
+		testFont('blackletter686 bt');
+		testFont('bodoni mt');
+		testFont('bodoni mt black');
+		testFont('bodoni mt condensed');
+		testFont('bodoni mt poster compressed');
+		testFont('book antiqua');
+		testFont('bookman');
+		testFont('bookman old style');
+		testFont('bradley hand itc');
+		testFont('braggadocio');
+		testFont('britannic bold');
+		testFont('broadway');
+		testFont('broadway bt');
+		testFont('browallia new');
+		testFont('browalliaupc');
+		testFont('brush script mt');
+		testFont('budhand');
+		testFont('caflisch script pro');
+		testFont('calibri');
+		testFont('californian fb');
+		testFont('calisto mt');
+		testFont('calligraph421 bt');
+		testFont('cambria');
+		testFont('cambria math');
+		testFont('campbell');
+		testFont('candara');
+		testFont('capitals');
+		testFont('caslon');
+		testFont('castellar');
+		testFont('casual');
+		testFont('cataneo bt');
+		testFont('centaur');
+		testFont('century gothic');
+		testFont('century schoolbook');
+		testFont('century schoolbook l');
+		testFont('cg omega');
+		testFont('cg times');
+		testFont('chalkduster');
+		testFont('champignon');
+		testFont('charcoal');
+		testFont('charter');
+		testFont('chasm');
+		testFont('chicago');
+		testFont('chick');
+		testFont('chiller');
+		testFont('clarendon');
+		testFont('clarendon condensed');
+		testFont('clarendon extended');
+		testFont('clearlyu');
+		testFont('colonna mt');
+		testFont('comic sans ms');
+		testFont('commercialscript bt');
+		testFont('consolas');
+		testFont('constantia');
+		testFont('copperplate');
+		testFont('copperplate gothic bold');
+		testFont('copperplate gothic ligh');
+		testFont('coolsville');
+		testFont('cooper black');
+		testFont('corbel');
+		testFont('cordia new');
+		testFont('cordiaupc');
+		testFont('coronet');
+		testFont('courier');
+		testFont('courier new');
+		testFont('courier new baltic');
+		testFont('courier new ce');
+		testFont('courier new cyr');
+		testFont('courier new greek');
+		testFont('courier new tur');
+		testFont('courierps');
+		testFont('croobie');
+		testFont('curlz mt');
+		testFont('cursive');
+		testFont('dfkai-sb');
+		testFont('daunpenh');
+		testFont('david');
+		testFont('dayton');
+		testFont('decotype naskh');
+		testFont('dejavu lgc sans');
+		testFont('dejavu lgc sans condensed');
+		testFont('dejavu lgc sans light');
+		testFont('dejavu lgc sans mono');
+		testFont('dejavu lgc serif');
+		testFont('dejavu lgc serif condensed');
+		testFont('dejavu sans');
+		testFont('dejavu sans condensed');
+		testFont('dejavu sans extra light');
+		testFont('dejavu sans light');
+		testFont('dejavu sans mono');
+		testFont('dejavu serif');
+		testFont('dejavu serif condensed');
+		testFont('desdemona');
+		testFont('didot');
+		testFont('dilleniaupc');
+		testFont('dokchampa');
+		testFont('dombold bt');
+		testFont('domestic manners');
+		testFont('dotum');
+		testFont('dotumche');
+		testFont('dustismo');
+		testFont('edwardian script itc');
+		testFont('electron');
+		testFont('engravers mt');
+		testFont('eras bold itc');
+		testFont('eras demi itc');
+		testFont('eras light itc');
+		testFont('eras medium itc');
+		testFont('estrangelo edessa');
+		testFont('eucrosiaupc');
+		testFont('euphemia');
+		testFont('eurostile');
+		testFont('fangsong');
+		testFont('fantasy');
+		testFont('fat');
+		testFont('felix titling');
+		testFont('fine hand');
+		testFont('firsthome');
+		testFont('fixed');
+		testFont('flat brush');
+		testFont('footlight mt light');
+		testFont('forte');
+		testFont('frankruehl');
+		testFont('franklin gothic book');
+		testFont('franklin gothic demi');
+		testFont('franklin gothic demi cond');
+		testFont('franklin gothic heavy');
+		testFont('franklin gothic medium');
+		testFont('franklin gothic medium cond');
+		testFont('freemono');
+		testFont('freesans');
+		testFont('freeserif');
+		testFont('freesiaupc');
+		testFont('freestyle script');
+		testFont('french script mt');
+		testFont('freshbot');
+		testFont('frosty');
+		testFont('frutiger');
+		testFont('frutiger linotype');
+		testFont('frutiger45-light');
+		testFont('frutiger46-light');
+		testFont('frutiger47-condensedlight');
+		testFont('frutiger55roman');
+		testFont('frutiger56');
+		testFont('frutiger57-condensed');
+		testFont('frutiger65');
+		testFont('frutiger66');
+		testFont('frutiger67-condensed');
+		testFont('frutiger75-black');
+		testFont('frutiger76-black');
+		testFont('frutiger77-condensedblack');
+		testFont('frutiger87-condensedextrablack');
+		testFont('frutiger95-ultrablack');
+		testFont('futura');
+		testFont('futurablack bt');
+		testFont('futuralight bt');
+		testFont('gadget');
+		testFont('garamond');
+		testFont('gautami');
+		testFont('gaze');
+		testFont('geneva');
+		testFont('genuine');
+		testFont('georgia');
+		testFont('georgia ref');
+		testFont('geotype tt');
+		testFont('gigi');
+		testFont('gill sans');
+		testFont('gill sans mt');
+		testFont('gill sans mt condensed');
+		testFont('gill sans mt ext condensed bold');
+		testFont('gill sans ultra bold');
+		testFont('gill sans ultra bold condensed');
+		testFont('gisha');
+		testFont('gloogun');
+		testFont('gloucester mt extra condensed');
+		testFont('goudy old style');
+		testFont('goudy stout');
+		testFont('gulim');
+		testFont('gulimche');
+		testFont('gungseo');
+		testFont('gungsuh');
+		testFont('gungsuhche');
+		testFont('haettenschweiler');
+		testFont('harlow solid italic');
+		testFont('harrington');
+		testFont('heiti sc');
+		testFont('heiti tc');
+		testFont('helterskelter');
+		testFont('helvetica');
+		testFont('helvetica narrow');
+		testFont('helvetica neue');
+		testFont('helveticaneue');
+		testFont('herculanum');
+		testFont('herman');
+		testFont('high tower text');
+		testFont('highlight let');
+		testFont('hiragino kaku gothic pron');
+		testFont('hiragino kaku gothic stdn');
+		testFont('hiragino maru gothic pron');
+		testFont('hiragino mincho pron');
+		testFont('hoefler text');
+		testFont('impact');
+		testFont('imprint mt shadow');
+		testFont('informal roman');
+		testFont('interstate');
+		testFont('irisupc');
+		testFont('isabella');
+		testFont('iskoola pota');
+		testFont('itc avant garde gothic');
+		testFont('itc avant garde gothic demi');
+		testFont('itc bookman demi');
+		testFont('itc bookman light');
+		testFont('itc century');
+		testFont('itc franklin gothic');
+		testFont('itc zapf chancery');
+		testFont('itc zapf dingbats');
+		testFont('jasmineupc');
+		testFont('jenkins');
+		testFont('jester');
+		testFont('joan');
+		testFont('john handy let');
+		testFont('jokerman');
+		testFont('jokerman let');
+		testFont('jokewood');
+		testFont('juice itc');
+		testFont('junkyard');
+		testFont('kabel ult bt');
+		testFont('kailasa');
+		testFont('kaiti');
+		testFont('kalinga');
+		testFont('kartika');
+		testFont('kaufmann');
+		testFont('kelt');
+		testFont('kids');
+		testFont('kino mt');
+		testFont('kodchiangupc');
+		testFont('kokonor');
+		testFont('kristen itc');
+		testFont('kunstler script');
+		testFont('la bamba let');
+		testFont('latha');
+		testFont('leelawadee');
+		testFont('letter gothic');
+		testFont('levenim mt');
+		testFont('liberation mono');
+		testFont('liberation sans');
+		testFont('liberation serif');
+		testFont('lilyupc');
+		testFont('linux libertine');
+		testFont('linux libertine c');
+		testFont('lithograph');
+		testFont('lucida');
+		testFont('lucida bright');
+		testFont('lucida calligraphy');
+		testFont('lucida console');
+		testFont('lucida fax');
+		testFont('lucida grande');
+		testFont('lucida handwriting');
+		testFont('lucida sans');
+		testFont('lucida sans typewriter');
+		testFont('lucida sans unicode');
+		testFont('lucida typewriter');
+		testFont('lucidabright');
+		testFont('luxi mono');
+		testFont('luxi sans');
+		testFont('luxi serif');
+		testFont('magneto');
+		testFont('maiandra gd');
+		testFont('malgun gothic');
+		testFont('mangal');
+		testFont('map symbols');
+		testFont('marigold');
+		testFont('marked fool');
+		testFont('marker felt');
+		testFont('marketpro');
+		testFont('marlett');
+		testFont('matteroffact');
+		testFont('matisse itc');
+		testFont('matura mt script capitals');
+		testFont('mead bold');
+		testFont('meiryo');
+		testFont('meiryo ui');
+		testFont('mekanik let');
+		testFont('menlo');
+		testFont('mercurius script mt bold');
+		testFont('metal');
+		testFont('mgopen canonica');
+		testFont('mgopen cosmetica');
+		testFont('mgopen modata');
+		testFont('mgopen moderna');
+		testFont('microsoft himalaya');
+		testFont('microsoft jhenghei');
+		testFont('microsoft sans serif');
+		testFont('microsoft uighur');
+		testFont('microsoft yahei');
+		testFont('microsoft yi baiti');
+		testFont('milano let');
+		testFont('mingliu');
+		testFont('mingliu-extb');
+		testFont('mingliu_hkscs');
+		testFont('mingliu_hkscs-extb');
+		testFont('minion std');
+		testFont('minion web');
+		testFont('miriam');
+		testFont('miriam fixed');
+		testFont('misterearl bt');
+		testFont('mistral');
+		testFont('monaco');
+		testFont('mongolian baiti');
+		testFont('monospace');
+		testFont('monotype');
+		testFont('monotype corsiva');
+		testFont('monotype sorts');
+		testFont('moolboran');
+		testFont('ms gothic');
+		testFont('ms linedraw');
+		testFont('ms mincho');
+		testFont('ms pgothic');
+		testFont('ms pmincho');
+		testFont('ms reference sans serif');
+		testFont('ms reference serif');
+		testFont('ms sans serif');
+		testFont('ms serif');
+		testFont('ms ui gothic');
+		testFont('mv boli');
+		testFont('narkisim');
+		testFont('new century schoolbook');
+		testFont('new york');
+		testFont('news gothic mt');
+		testFont('niagara engraved');
+		testFont('niagara solid');
+		testFont('nice');
+		testFont('nimbus mono l');
+		testFont('nimbus roman no9 l');
+		testFont('nimbus sans l');
+		testFont('nimbus sans l condensed');
+		testFont('nsimsun');
+		testFont('nyala');
+		testFont('ocr a extended');
+		testFont('ocrb');
+		testFont('odessa let');
+		testFont('old english text mt');
+		testFont('olddreadfulno7 bt');
+		testFont('one stroke script let');
+		testFont('onyx');
+		testFont('opensymbol');
+		testFont('optima');
+		testFont('orange let');
+		testFont('palace script mt');
+		testFont('palatino');
+		testFont('palatino linotype');
+		testFont('papyrus');
+		testFont('parkavenue bt');
+		testFont('penguin attack');
+		testFont('pepita mt');
+		testFont('perpetua');
+		testFont('perpetua titling mt');
+		testFont('placard condensed');
+		testFont('plantagenet cherokee');
+		testFont('playbill');
+		testFont('pmingliu');
+		testFont('pmingliu-extb');
+		testFont('porcelain');
+		testFont('poornut');
+		testFont('pristina');
+		testFont('pump demi bold let');
+		testFont('puppylike');
+		testFont('pussycat');
+		testFont('quixley let');
+		testFont('raavi');
+		testFont('rage italic');
+		testFont('rage italic let');
+		testFont('ravie');
+		testFont('rockwell');
+		testFont('rockwell condensed');
+		testFont('rockwell extra bold');
+		testFont('rod');
+		testFont('roland');
+		testFont('rotissemisans');
+		testFont('ruach let');
+		testFont('runic mt condensed');
+		testFont('sand');
+		testFont('sans-serif');
+		testFont('script mt bold');
+		testFont('scripts');
+		testFont('scruff let');
+		testFont('segoe print');
+		testFont('segoe script');
+		testFont('segoe ui');
+		testFont('serif');
+		testFont('shelley');
+		testFont('short hand');
+		testFont('showcard gothic');
+		testFont('shruti');
+		testFont('signs normal');
+		testFont('simhei');
+		testFont('simplex');
+		testFont('simplified arabic');
+		testFont('simplified arabic fixed');
+		testFont('simpson');
+		testFont('simsun');
+		testFont('simsun-extb');
+		testFont('skia');
+		testFont('snap itc');
+		testFont('smudger let');
+		testFont('square721 bt');
+		testFont('staccato222 bt');
+		testFont('stencil');
+		testFont('stylus bt');
+		testFont('superfrench');
+		testFont('surfer');
+		testFont('swis721 bt');
+		testFont('swis721 blkoul bt');
+		testFont('sylfaen');
+		testFont('symap');
+		testFont('symbol');
+		testFont('symbolps');
+		testFont('tahoma');
+		testFont('technic');
+		testFont('techno');
+		testFont('tempus sans itc');
+		testFont('terk');
+		testFont('terminal');
+		testFont('textile');
+		testFont('times');
+		testFont('times new roman baltic');
+		testFont('times new roman ce');
+		testFont('times new roman cyr');
+		testFont('times new roman greek');
+		testFont('times new roman tur');
+		testFont('tiranti solid let');
+		testFont('tradegothic');
+		testFont('traditional arabic');
+		testFont('trebuchet ms');
+		testFont('trendy');
+		testFont('tunga');
+		testFont('tw cen mt');
+		testFont('tw cen mt condensed');
+		testFont('tw cen mt condensed extra bold');
+		testFont('univers');
+		testFont('univers condensed');
+		testFont('university roman let');
+		testFont('urw antiqua t');
+		testFont('urw bookman l');
+		testFont('urw chancery l');
+		testFont('urw gothic l');
+		testFont('urw grotesk t');
+		testFont('urw palladio l');
+		testFont('utopia');
+		testFont('vera sans');
+		testFont('vera sans mono');
+		testFont('vera serif');
+		testFont('verdana');
+		testFont('verdana ref');
+		testFont('victorian let');
+		testFont('viner hand itc');
+		testFont('vineta bt');
+		testFont('vivaldi');
+		testFont('vivian');
+		testFont('vladimir script');
+		testFont('vrinda');
+		testFont('webdings');
+		testFont('weltron urban');
+		testFont('western');
+		testFont('westminster');
+		testFont('westwood let');
+		testFont('wide latin');
+		testFont('wingdings');
+		testFont('zapf chancery');
+		testFont('zapfellipt bt');
+		testFont('zapfino');
+
 		return fontList;
 	}
 
 	// Utility function to safely invoke a function, logging any error throw
-	function callSafe(f) {
+	function callSafe(f, onError) {
 		try {
 			f();
 		} catch (e) {
 			$this.console.error(e);
+			if (onError) {
+				onError(e);
+			}
 		}
 	}
 
@@ -2749,7 +1665,12 @@ var RevsysAnalyticsClient = function(options) {
 	// https://bugzilla.mozilla.org/show_bug.cgi?id=781447
 	function hasLocalStorage() {
 		try {
-			return !!window.localStorage;
+			if (!!window.localStorage) {
+				window.localStorage.test = "test";
+				return window.localStorage.test == "test";
+			} else {
+				return false;
+			}
 		} catch (e) {
 			return false;
 		}
@@ -2757,7 +1678,12 @@ var RevsysAnalyticsClient = function(options) {
 
 	function hasSessionStorage() {
 		try {
-			return !!window.sessionStorage;
+			if (!!window.sessionStorage) {
+				window.sessionStorage.test = "test";
+				return window.sessionStorage.test == "test";
+			} else {
+				return false;
+			}
 		} catch (e) {
 			return false;
 		}
