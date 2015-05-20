@@ -13,7 +13,9 @@ describe("AnalyticsClient", function() {
 						expect(data.fingerprints.browser).not.toBeUndefined();
 						expect(data.fingerprints.connection).not.toBeUndefined();
 						expect(data.fingerprints.breakdown).toBeUndefined();
-						expect(data.media.type).toBe("screen");
+						if (data.browser.userAgent.indexOf("MSIE 9.0") == -1) { // mediaMatch only supported in IE 10+
+							expect(data.media.type).toBe("screen");
+						}
 						expect(data.page.title).toBe("Jasmine Spec Runner");
 						expect(data.page.performance.fetchStart).toBeGreaterThan(0);
 						expect(data.location.city).not.toBeUndefined();
@@ -212,5 +214,41 @@ describe("AnalyticsClient", function() {
 				}
 			});
 		});
+		it("should handle RTC NotSupportedError thrown on Mac", function(done) {
+			// Simulate mac behaviour
+			if (!window.RTCPeerConnection) {
+				window.RTCPeerConnection = function() {
+
+				};
+			};
+			window.RTCPeerConnection.prototype.createDataChannel = function() {
+				throw {
+					name: "NotSupportedError"
+				};
+			};
+			/////////////////////////
+			console.error = function() {
+				console.log(arguments);
+				expect(arguments).toBeNull();
+				done();
+			};
+			var analyticsClient = new RevsysAnalyticsClient({
+				persistSessionState: false,
+				submissionHandler: new function() {
+					this.submit = function(request) {
+						done();
+					};
+				}
+			});
+		});
 	});
 });
+
+function flatten(obj) {
+	var result = {};
+	for (var key in obj) {
+		value = obj[key];
+		result[key] = value;
+	}
+	return result;
+}

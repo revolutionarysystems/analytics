@@ -521,7 +521,7 @@ var RevsysAnalyticsClient = function(options) {
 	}
 
 	function matchMedia(expr) {
-		return targetWindow.matchMedia(expr).matches;
+		return targetWindow.matchMedia ? targetWindow.matchMedia(expr).matches : false;
 	}
 
 	// Get an array of scripts currently on the page
@@ -620,7 +620,11 @@ var RevsysAnalyticsClient = function(options) {
 						});
 					}
 				} catch (e) {
-					$this.console.error(e);
+					if(e && e.name == "NotSupportedError"){
+						// Ignore this error
+					}else{
+						$this.console.error(e);
+					}
 					callback([]);
 				}
 			})();
@@ -686,7 +690,7 @@ var RevsysAnalyticsClient = function(options) {
 		// Generate fingerprint based on user preferences
 		var pfpData = {
 			cookieEnabled: targetWindow.navigator.cookieEnabled.toString(),
-			language: targetWindow.navigator.language.toLowerCase(),
+			language: targetWindow.navigator.language || targetWindow.navigator.browserLanguage || targetWindow.navigator.systemLanguage ||	targetWindow.navigator.userLanguage,
 			timezoneOffset: new Date().getTimezoneOffset(),
 			localStorage: hasLocalStorage(),
 			sessionStorage: hasSessionStorage()
@@ -721,7 +725,7 @@ var RevsysAnalyticsClient = function(options) {
 		var bfpData = {
 			userAgent: targetWindow.navigator.userAgent,
 			platform: targetWindow.navigator.platform,
-			language: targetWindow.navigator.language.toLowerCase(),
+			language: targetWindow.navigator.language || targetWindow.navigator.browserLanguage || targetWindow.navigator.systemLanguage ||	targetWindow.navigator.userLanguage,
 			mimeTypes: targetWindow.navigator.mimeTypes.length,
 			plugins: getPluginsString(),
 			canvasFingerprint: getCanvasFingerprint(),
