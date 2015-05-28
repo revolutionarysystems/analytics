@@ -20,6 +20,14 @@ var KinesisAnalyticsSubmissionHandler = function(kinesisClient) {
 	}
 };
 
+// Submission handler which writes data to console before submitting it
+var DebugSubmissionHandler = function(submissionHandler) {
+	this.submit = function(request) {
+		console.log(request.data);
+		submissionHandler.submit(request);
+	}
+};
+
 var RevsysAnalyticsClient = function(options) {
 
 	// Store reference to self
