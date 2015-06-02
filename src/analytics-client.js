@@ -471,6 +471,7 @@ var RevsysAnalyticsClient = function(options) {
 		var page = {
 			location: targetWindow.location,
 			title: targetWindow.document.title,
+			date: targetWindow.document.lastModified,
 			referrer: targetWindow.document.referrer,
 			iframed: targetWindow.top.location !== targetWindow.location,
 			screen: {
