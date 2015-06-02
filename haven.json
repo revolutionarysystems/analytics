@@ -23,7 +23,7 @@
 		"includes": ["dist/gl-matrix.js"]
 	}, {
 		"name": "kinesis-js",
-		"version": "0.2.0-SNAPSHOT"
+		"version": "0.2.0"
 	}, {
 		"name": "revsys-jsencrypt",
 		"version": "0.1.0"
