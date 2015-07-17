@@ -41,6 +41,8 @@ var RevsysAnalyticsClient = function(options) {
 	var serverTime;
 	var serverTimeOffset;
 
+	var heartbeatTimer;
+
 	// Default config
 	this.config = {
 		cacheServer: null,
@@ -64,6 +66,7 @@ var RevsysAnalyticsClient = function(options) {
 			"Client-ip",
 			"Via"
 		],
+		heartbeat: 0,
 		window: window,
 		submissionHandler: new function() {
 			this.submit = function(request) {
@@ -181,6 +184,13 @@ var RevsysAnalyticsClient = function(options) {
 						}, formData);
 					})
 				});
+			}
+			if($this.config.heartbeat > 0){
+				heartbeatTimer = setInterval(function(){
+					$this.updateSession({
+						type: "heartbeat"
+					});
+				}, $this.config.heartbeat);
 			}
 			if ($this.config.includeServerData == true && newSession) {
 				getServerInfo();

@@ -1,13 +1,16 @@
 {
 	"name": "analytics-client-js",
-	"version": ["0.3.0-SNAPSHOT"],
+	"version": "0.3.0-SNAPSHOT",
 	"artifacts": [{
 		"files": [{
 			"src/analytics-client.js": "analytics-client.js"
 		}]
 	}],
 	"repositories": {
-		"distribution": [{
+		"dependencies": [{
+			"url": "http://build.revsys.co.uk/haven-repository"
+		}],
+        "distribution": [{
 			"url": "http://build.revsys.co.uk/haven-repository"
 		}]
 	},
