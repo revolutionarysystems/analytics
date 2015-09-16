@@ -258,6 +258,7 @@ var RevsysAnalyticsClient = function(options) {
 		var now = new Date().getTime();
 		request.data.timestamp = now - serverTimeOffset;
 		request.data.clientTimestamp = now;
+		request.data.timezoneOffset = new Date().getTimezoneOffset();
 		request.data.requestId = requestId;
 		this.config.submissionHandler.submit(request);
 		return requestId;
